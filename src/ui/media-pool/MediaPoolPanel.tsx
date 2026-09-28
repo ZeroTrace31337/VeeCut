@@ -1,0 +1,454 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useRef, useEffect } from 'react';
+import { useEditor } from '../context/EditorContext';
+import { MediaAsset } from '../../domain/media/MediaAsset';
+import { AddClipCommand } from '../../engine/command/implementations/AddClipCommand';
+import { createBaseClip } from '../../domain/timeline/Clip';
+import { rationalTimeToSeconds, createRationalTime } from '../../core/time/RationalTime';
+import {
+  Film,
+  Music,
+  Image as ImageIcon,
+  Plus,
+  Trash2,
+  Upload,
+  Search,
+  Clock,
+  Layers,
+  AlertTriangle,
+  AlertCircle,
+  FolderOpen,
+  X,
+  Play,
+  Pause,
+  Volume2,
+  Loader2,
+} from 'lucide-react';
+import { AudioWaveformVisualizer } from '../audio/AudioWaveformVisualizer';
+import { BrowserMediaProcessor } from '../../media-services/browser/BrowserMediaProcessor';
+import { notifyToast } from '../toast/ToastContext';
+
+export const MediaPoolPanel: React.FC = () => {
+  const {
+    project,
+    timelineEngine,
+    commandManager,
+    importFile,
+    removeMediaAsset,
+    uploadStates,
+    currentTime,
+    addMediaAssetAndClip,
+  } = useEditor();
+
+  const [filterType, setFilterType] = useState<'all' | 'video' | 'audio' | 'image'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [previewingAssetId, setPreviewingAssetId] = useState<string | null>(null);
+  const [previewProgress, setPreviewProgress] = useState<number>(0);
+  const [extractingAssetId, setExtractingAssetId] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Clean up audio on unmount
+  useEffect(() => {
+    return () => {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+        previewAudioRef.current = null;
+      }
+    };
+  }, []);
+
+  const assets = project.mediaPool || [];
+
+  const filteredAssets = assets.filter((asset) => {
+    if (filterType !== 'all' && asset.type !== filterType) return false;
+    if (searchQuery && !asset.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    for (let i = 0; i < files.length; i++) {
+      try {
+        await importFile(files[i]);
+      } catch (e) {
+        console.error('Import failed', e);
+      }
+    }
+  };
+
+  const toggleAudioPreview = (asset: MediaAsset, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (previewingAssetId === asset.id) {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+        previewAudioRef.current = null;
+      }
+      setPreviewingAssetId(null);
+      setPreviewProgress(0);
+      return;
+    }
+
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+
+    try {
+      const audio = new Audio(asset.uri);
+      previewAudioRef.current = audio;
+      setPreviewingAssetId(asset.id);
+      setPreviewProgress(0);
+
+      audio.ontimeupdate = () => {
+        if (audio.duration && !isNaN(audio.duration)) {
+          setPreviewProgress(audio.currentTime / audio.duration);
+        }
+      };
+
+      audio.onended = () => {
+        setPreviewingAssetId(null);
+        setPreviewProgress(0);
+        previewAudioRef.current = null;
+      };
+
+      audio.onerror = () => {
+        setPreviewingAssetId(null);
+        setPreviewProgress(0);
+        previewAudioRef.current = null;
+      };
+
+      audio.play().catch((err) => {
+        console.warn('Audio preview error', err);
+        setPreviewingAssetId(null);
+      });
+    } catch (e) {
+      console.warn('Could not initialize audio preview', e);
+      setPreviewingAssetId(null);
+    }
+  };
+
+  const handleExtractAudioFromVideo = async (asset: MediaAsset, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExtractingAssetId(asset.id);
+    try {
+      const processor = new BrowserMediaProcessor();
+      const result = await processor.extractAudioFromMedia(asset.uri);
+      const audioFile = new File(
+        [result.blob],
+        `${asset.name.replace(/\.[^/.]+$/, '')}_Audio.wav`,
+        { type: 'audio/wav' }
+      );
+      await importFile(audioFile);
+      notifyToast('Audio track extracted and added to Media Pool!', 'success');
+    } catch (err: any) {
+      console.error('Failed to extract audio from video', err);
+      notifyToast('Could not extract audio track from this video file.', 'error');
+    } finally {
+      setExtractingAssetId(null);
+    }
+  };
+
+  const handleAddAssetToTimeline = async (asset: MediaAsset) => {
+    try {
+      await addMediaAssetAndClip(asset);
+      notifyToast(`Added "${asset.name}" to timeline`, 'success');
+    } catch (err: any) {
+      notifyToast(err.message || 'Failed to place clip on timeline. Check track space.', 'warning');
+    }
+  };
+
+  const handleRemoveAsset = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    removeMediaAsset(id);
+  };
+
+  return (
+    <div
+      className="flex flex-col h-full bg-zinc-950/70 border-r border-zinc-850 select-none"
+      onDragOver={(e) => {
+        e.preventDefault();
+        setIsDraggingOver(true);
+      }}
+      onDragLeave={() => setIsDraggingOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDraggingOver(false);
+        handleFiles(e.dataTransfer.files);
+      }}
+    >
+      {/* Panel Header */}
+      <div className="p-3 border-b border-zinc-800/80 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Layers className="w-4 h-4 text-cyan-400" />
+          <span className="text-xs font-semibold text-zinc-200 tracking-wide uppercase">Media Pool</span>
+          <span className="text-[10px] text-zinc-500 font-mono">({assets.length})</span>
+        </div>
+
+        <input
+          type="file"
+          ref={fileInputRef}
+          multiple
+          accept="video/*,audio/*,image/*,.mp4,.mov,.webm,.mkv,.avi,.mp3,.wav,.ogg,.aac,.m4a,.flac"
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-cyan-300 bg-cyan-950/60 border border-cyan-800/60 rounded-md hover:bg-cyan-900/80 hover:text-white transition-all shadow-xs"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span>Import</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Filter Tabs & Search Bar */}
+      <div className="p-2.5 space-y-2 border-b border-zinc-850">
+        <div className="relative">
+          <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search media..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-md pl-8 pr-2.5 py-1 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-cyan-500 transition-colors"
+          />
+        </div>
+
+        <div className="flex items-center gap-1 text-[11px]">
+          {(['all', 'video', 'audio', 'image'] as const).map((type) => (
+            <button
+              key={type}
+              onClick={() => setFilterType(type)}
+              className={`flex-1 py-1 rounded text-center capitalize transition-colors ${
+                filterType === type
+                  ? 'bg-zinc-800 text-zinc-100 font-medium'
+                  : 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-900'
+              }`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Active Uploading / Processing Banners */}
+      {uploadStates.length > 0 && (
+        <div className="p-2.5 pb-0 space-y-1.5">
+          {uploadStates.map((up) => (
+            <div
+              key={up.id}
+              className={`p-2 rounded-lg text-[11px] border ${
+                up.status === 'failed'
+                  ? 'bg-red-950/40 border-red-500/50 text-red-300'
+                  : up.status === 'ready'
+                  ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300'
+                  : 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200'
+              }`}
+            >
+              <div className="flex items-center justify-between font-medium">
+                <span className="truncate max-w-[180px]">{up.name}</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider">
+                  {up.status === 'generating_thumbnail'
+                    ? 'Thumbnail'
+                    : up.status === 'processing'
+                    ? 'Probing'
+                    : up.status}
+                </span>
+              </div>
+              {up.status !== 'failed' && (
+                <div className="w-full h-1.5 bg-black/60 rounded-full mt-1.5 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-300 rounded-full"
+                    style={{ width: `${up.progress}%` }}
+                  />
+                </div>
+              )}
+              {up.error && (
+                <div className="text-[10px] text-red-400 mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  <span>{up.error}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Assets Grid */}
+      <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
+        {filteredAssets.length === 0 ? (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className={`h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-4 text-center cursor-pointer transition-all ${
+              isDraggingOver
+                ? 'border-cyan-500 bg-cyan-500/10'
+                : 'border-zinc-800 hover:border-cyan-500/50 bg-zinc-900/30'
+            }`}
+          >
+            <Upload className="w-8 h-8 text-zinc-600 mb-2" />
+            <p className="text-xs font-medium text-zinc-300">Drag & Drop media files</p>
+            <p className="text-[10px] text-zinc-500 mt-1">or click to browse from device</p>
+            <div className="flex flex-wrap gap-1 items-center justify-center mt-2.5 max-w-[220px]">
+              {['MP4', 'MOV', 'WebM', 'AVI', 'MKV', 'PNG', 'JPG', 'MP3', 'WAV'].map((fmt) => (
+                <span key={fmt} className="px-1.5 py-0.5 rounded bg-zinc-850 text-zinc-400 text-[9px] font-mono">
+                  {fmt}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {filteredAssets.map((asset) => {
+              const durSec = rationalTimeToSeconds(asset.duration);
+              return (
+                <div
+                  key={asset.id}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('application/json', JSON.stringify(asset));
+                  }}
+                  className="group relative bg-zinc-900 border border-zinc-800/90 rounded-lg overflow-hidden hover:border-cyan-500/70 transition-all shadow-xs flex flex-col"
+                >
+                  {/* Thumbnail Container */}
+                  <div className="relative aspect-video bg-zinc-950 flex items-center justify-center overflow-hidden">
+                    {asset.thumbnailUrl ? (
+                      <img
+                        src={asset.thumbnailUrl}
+                        alt={asset.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : asset.type === 'audio' ? (
+                      <div className="w-full h-full bg-gradient-to-br from-emerald-950/70 to-zinc-950 flex items-center justify-center p-1 relative">
+                        <AudioWaveformVisualizer
+                          asset={asset}
+                          color={previewingAssetId === asset.id ? '#10b981' : '#34d399'}
+                          className="w-full h-full opacity-80"
+                        />
+                        {/* Playhead progress if previewing */}
+                        {previewingAssetId === asset.id && (
+                          <div
+                            className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_8px_white] pointer-events-none"
+                            style={{ left: `${Math.max(0, Math.min(100, previewProgress * 100))}%` }}
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <Film className="w-8 h-8 text-zinc-700" />
+                    )}
+
+                    {/* Duration Badge */}
+                    <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-xs text-[10px] font-mono text-zinc-200 flex items-center gap-1 z-10">
+                      <Clock className="w-2.5 h-2.5 text-zinc-400" />
+                      <span>{durSec > 0 ? `${durSec.toFixed(1)}s` : asset.type.toUpperCase()}</span>
+                    </div>
+
+                    {/* Media Type Icon Badge */}
+                    <div className="absolute top-1 left-1 p-1 rounded bg-black/70 backdrop-blur-xs text-zinc-300 z-10">
+                      {asset.type === 'video' ? (
+                        <Film className="w-3 h-3 text-cyan-400" />
+                      ) : asset.type === 'audio' ? (
+                        <Music className="w-3 h-3 text-emerald-400" />
+                      ) : (
+                        <ImageIcon className="w-3 h-3 text-amber-400" />
+                      )}
+                    </div>
+
+                    {/* Audio Preview Play/Pause button */}
+                    {asset.type === 'audio' && (
+                      <button
+                        type="button"
+                        onClick={(e) => toggleAudioPreview(asset, e)}
+                        title={previewingAssetId === asset.id ? 'Pause Preview' : 'Play Preview'}
+                        className={`absolute bottom-1 left-1 p-1 rounded-full z-20 backdrop-blur-xs transition-all ${
+                          previewingAssetId === asset.id
+                            ? 'bg-emerald-500 text-black shadow-md shadow-emerald-500/50 scale-110'
+                            : 'bg-black/80 text-zinc-300 hover:text-white hover:bg-emerald-600'
+                        }`}
+                      >
+                        {previewingAssetId === asset.id ? (
+                          <Pause className="w-3 h-3" />
+                        ) : (
+                          <Play className="w-3 h-3 ml-0.5" />
+                        )}
+                      </button>
+                    )}
+
+                    {/* Quick Add Overlay Button */}
+                    <button
+                      onClick={() => handleAddAssetToTimeline(asset)}
+                      title="Add to Timeline at playhead"
+                      className="absolute inset-0 bg-cyan-950/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-1 text-xs font-medium z-15"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Place</span>
+                    </button>
+                  </div>
+
+                  {/* Metadata info */}
+                  <div className="p-2 flex items-center justify-between gap-1 bg-zinc-900/90">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-medium text-zinc-200 truncate" title={asset.name}>
+                        {asset.name}
+                      </p>
+                      <p className="text-[9px] text-zinc-500 font-mono">
+                        {asset.videoMetadata
+                          ? `${asset.videoMetadata.width}×${asset.videoMetadata.height}`
+                          : asset.audioMetadata
+                          ? `${asset.audioMetadata.sampleRate}Hz`
+                          : `${(asset.fileSize / 1024 / 1024).toFixed(1)}MB`}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-0.5">
+                      {asset.type === 'video' && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleExtractAudioFromVideo(asset, e)}
+                          title="Extract original audio track to Media Pool"
+                          disabled={extractingAssetId === asset.id}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-cyan-400 transition-all rounded hover:bg-zinc-800 disabled:opacity-50"
+                        >
+                          {extractingAssetId === asset.id ? (
+                            <Loader2 className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+                          ) : (
+                            <Volume2 className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
+
+                      <button
+                        onClick={(e) => handleRemoveAsset(asset.id, e)}
+                        title="Remove from project"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-zinc-500 hover:text-red-400 transition-all rounded hover:bg-zinc-800"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {asset.isOffline && (
+                    <div className="absolute inset-0 bg-red-950/90 border border-red-500/50 flex flex-col items-center justify-center p-2 text-center">
+                      <AlertTriangle className="w-6 h-6 text-red-400 mb-1" />
+                      <span className="text-xs font-bold text-red-200">Media Offline</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

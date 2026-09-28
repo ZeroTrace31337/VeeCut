@@ -1,0 +1,1721 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  X,
+  Sparkles,
+  Wand2,
+  Video,
+  Image as ImageIcon,
+  Subtitles,
+  Mic,
+  Scissors,
+  Eraser,
+  Sliders,
+  Play,
+  Pause,
+  ArrowRight,
+  Check,
+  RefreshCw,
+  Layers,
+  Volume2,
+  Maximize2,
+  Download,
+  Eye,
+  SlidersHorizontal,
+  ChevronRight,
+  Crosshair,
+  Bot,
+  Upload,
+  Radio,
+  FileAudio,
+  AlertCircle,
+  StopCircle,
+  FolderPlus,
+  Bookmark,
+} from 'lucide-react';
+import { AIToolItem } from './homeData';
+
+interface AIToolModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  tool: AIToolItem | null;
+  onApplyToTimeline: (resultInfo: {
+    title: string;
+    type: string;
+    assetUrl?: string;
+    videoUrl?: string;
+    audioData?: string;
+    imageUrl?: string;
+    colorGrade?: any;
+    captions?: any[];
+    keyframes?: any[];
+    assistantActions?: any[];
+    durationSec?: number;
+  }) => void;
+  onSaveToMediaLibrary?: (resultInfo: {
+    title: string;
+    type: string;
+    assetUrl?: string;
+    videoUrl?: string;
+    audioData?: string;
+    imageUrl?: string;
+    colorGrade?: any;
+    captions?: any[];
+    keyframes?: any[];
+    assistantActions?: any[];
+    durationSec?: number;
+  }) => void;
+}
+
+export const AIToolModal: React.FC<AIToolModalProps> = ({
+  isOpen,
+  onClose,
+  tool,
+  onApplyToTimeline,
+  onSaveToMediaLibrary,
+}) => {
+  // Common States
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationStatusText, setGenerationStatusText] = useState('Initializing AI Model...');
+  const [resultData, setResultData] = useState<any | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isSavedToMediaLibrary, setIsSavedToMediaLibrary] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Tool 1: AI Video Generator
+  const [videoPrompt, setVideoPrompt] = useState(
+    'Cinematic aerial drone shot of neon cyberpunk metropolis at night, reflections on wet streets, 4K 60fps'
+  );
+  const [videoStyle, setVideoStyle] = useState('Cinematic');
+  const [videoDuration, setVideoDuration] = useState(5);
+  const [videoAspect, setVideoAspect] = useState('16:9');
+  const [useVeoRealtime, setUseVeoRealtime] = useState(false);
+
+  // Tool 2: AI Image Generator
+  const [imagePrompt, setImagePrompt] = useState(
+    'Photorealistic dramatic sunset over snowy mountain peaks with volumetric fog and golden hour glow'
+  );
+  const [imageStyle, setImageStyle] = useState('Photorealistic');
+  const [imageAspect, setImageAspect] = useState('16:9');
+
+  // Tool 3: AI Style Transfer & Color Grade
+  const [stylePreset, setStylePreset] = useState('Kodak 35mm Film');
+  const [stylePrompt, setStylePrompt] = useState(
+    'Warm golden hour tones, rich teal shadows, deep contrast roll-off, film grain'
+  );
+  const [styleIntensity, setStyleIntensity] = useState(100);
+  const [splitPreviewPos, setSplitPreviewPos] = useState(50);
+
+  // Tool 4: AI Background Removal
+  const [bgMode, setBgMode] = useState<'transparent' | 'blur' | 'studio' | 'greenscreen'>('transparent');
+  const [bgFeather, setBgFeather] = useState(2);
+  const [uploadedBgImage, setUploadedBgImage] = useState<string | null>(null);
+
+  // Tool 5: AI Object Removal
+  const [objectTarget, setObjectTarget] = useState('Microphone in top right');
+  const [inpaintMode, setInpaintMode] = useState('temporal');
+  const [uploadedObjImage, setUploadedObjImage] = useState<string | null>(null);
+
+  // Tool 6: AI Motion Tracking
+  const [trackingTarget, setTrackingTarget] = useState('Subject Face');
+  const [trackAttachment, setTrackAttachment] = useState('Pin 3D Text');
+
+  // Tool 7: AI Auto Captions
+  const [captionLang, setCaptionLang] = useState('English');
+  const [captionStyle, setCaptionStyle] = useState('Viral TikTok Karaoke');
+  const [editableCaptions, setEditableCaptions] = useState<any[]>([]);
+
+  // Tool 8: AI Voice & Speech TTS
+  const [voiceName, setVoiceName] = useState('Puck');
+  const [voiceEmotion, setVoiceEmotion] = useState('Cinematic Narrator');
+  const [voiceScript, setVoiceScript] = useState(
+    'Welcome to VeeCut, the ultimate creative studio for cinematic storytelling and high-impact video creation.'
+  );
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
+  // Tool 9: AI Audio Enhancement
+  const [audioProfile, setAudioProfile] = useState('Studio Vocal Clarity');
+  const [noiseReductionVal, setNoiseReductionVal] = useState(85);
+  const [deReverbVal, setDeReverbVal] = useState(70);
+
+  // Tool 10: AI Video Assistant (Copilot)
+  const [assistantPrompt, setAssistantPrompt] = useState(
+    'Add a bold cinematic title saying "SUMMER VLOG 2026" with a warm golden hour color grade'
+  );
+
+  // Tool 11: AI 4K/8K Upscaler
+  const [upscaleFactor, setUpscaleFactor] = useState('4x');
+  const [upscaleModel, setUpscaleModel] = useState('Super-Resolution Neural');
+
+  // Tool 12: AI Music & SFX Generator
+  const [musicPrompt, setMusicPrompt] = useState(
+    'Cinematic epic trailer orchestral synth hybrid with dramatic riser and bass drop'
+  );
+  const [musicGenre, setMusicGenre] = useState('Cinematic');
+  const [musicMood, setMusicMood] = useState('Epic');
+  const [musicBpm, setMusicBpm] = useState(128);
+  const [musicDuration, setMusicDuration] = useState(30);
+
+  // Tool 13: AI Speech-to-Text Workspace
+  const [transcriptionLang, setTranscriptionLang] = useState('auto');
+  const [transcriptionPrompt, setTranscriptionPrompt] = useState(
+    'Transcribe dialogue, identify speakers, and align timestamps with millisecond accuracy.'
+  );
+
+  // Reset state when opening a new tool
+  useEffect(() => {
+    if (isOpen) {
+      setResultData(null);
+      setIsGenerating(false);
+      setGenerationProgress(0);
+      setErrorMsg(null);
+      setIsPlayingAudio(false);
+      setEditableCaptions([]);
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
+    }
+  }, [isOpen, tool?.id]);
+
+  if (!isOpen || !tool) return null;
+
+  // Real backend call dispatcher
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    setGenerationProgress(10);
+    setGenerationStatusText('Communicating with Gemini AI neural model...');
+    setErrorMsg(null);
+    setResultData(null);
+    setIsSavedToMediaLibrary(false);
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    const progressTimer = setInterval(() => {
+      setGenerationProgress((p) => {
+        if (p < 40) return p + 15;
+        if (p < 75) return p + 8;
+        if (p < 92) return p + 2;
+        return p;
+      });
+    }, 300);
+
+    try {
+      let endpoint = '/api/ai/video-gen';
+      let payload: any = {};
+
+      switch (tool.id) {
+        case 'ai_video_gen':
+          setGenerationStatusText('Initializing Veo 3.1 video generation...');
+          endpoint = '/api/ai/video-generate';
+          payload = {
+            prompt: videoPrompt,
+            style: videoStyle,
+            duration: videoDuration,
+            aspectRatio: videoAspect,
+            resolution: '1080p',
+          };
+          break;
+
+        case 'ai_image_to_video':
+          setGenerationStatusText('Sending image to Veo 3.1 motion engine...');
+          endpoint = '/api/ai/image-to-video-generate';
+          payload = {
+            imageData: uploadedBgImage || uploadedObjImage,
+            motionPrompt: videoPrompt || 'Subtle cinematic camera push-in and natural motion',
+            duration: videoDuration || 5,
+            cameraMotion: 'Pan Right',
+            aspectRatio: videoAspect || '16:9',
+            resolution: '1080p',
+          };
+          break;
+
+        case 'ai_image_gen':
+          setGenerationStatusText('Generating photorealistic 8K render with Gemini...');
+          endpoint = '/api/ai/image-gen';
+          payload = {
+            prompt: imagePrompt,
+            style: imageStyle,
+            aspectRatio: imageAspect,
+          };
+          break;
+
+        case 'ai_style_transfer':
+          setGenerationStatusText('Calculating 3D LUT matrix and photochemical film response...');
+          endpoint = '/api/ai/style-transfer';
+          payload = {
+            stylePrompt,
+            preset: stylePreset,
+            intensity: styleIntensity,
+          };
+          break;
+
+        case 'ai_bg_removal':
+          setGenerationStatusText('Segmenting subject alpha mask with Gemini vision...');
+          endpoint = '/api/ai/bg-removal';
+          payload = {
+            imageData: uploadedBgImage,
+            mode: bgMode,
+            feather: bgFeather,
+          };
+          break;
+
+        case 'ai_object_removal':
+          setGenerationStatusText('Inpainting clean plate with Gemini vision...');
+          endpoint = '/api/ai/object-removal';
+          payload = {
+            imageData: uploadedObjImage,
+            targetDescription: objectTarget,
+            inpaintMode,
+          };
+          break;
+
+        case 'ai_motion_tracking':
+          setGenerationStatusText('Solving 3D camera motion vectors and planar drift...');
+          endpoint = '/api/ai/motion-tracking';
+          payload = {
+            targetName: trackingTarget,
+            trackingMode: trackAttachment,
+            durationSec: 6,
+          };
+          break;
+
+        case 'ai_captions':
+          setGenerationStatusText('Transcribing speech and aligning word-level karaoke timing...');
+          endpoint = '/api/ai/auto-captions';
+          payload = {
+            language: captionLang,
+            style: captionStyle,
+            audioPrompt: 'Welcome to VeeCut Studio. Create high-impact cinematic videos with advanced AI tools.',
+          };
+          break;
+
+        case 'ai_voice':
+          setGenerationStatusText(`Synthesizing ${voiceName} studio voiceover via Gemini TTS...`);
+          endpoint = '/api/ai/voice-tts';
+          payload = {
+            text: voiceScript,
+            voice: voiceName,
+            emotion: voiceEmotion,
+          };
+          break;
+
+        case 'ai_audio_enhance':
+          setGenerationStatusText('Applying parametric EQ, noise reduction, and de-reverb with Gemini...');
+          endpoint = '/api/ai/audio-enhance';
+          payload = {
+            profile: audioProfile,
+            noiseReduction: noiseReductionVal,
+            deReverb: deReverbVal,
+            audioPrompt: `Enhance speech with ${audioProfile} acoustic profile and dynamic broadcast leveling`,
+          };
+          break;
+
+        case 'ai_assistant':
+          setGenerationStatusText('Gemini Copilot parsing video editing commands and timeline actions...');
+          endpoint = '/api/ai/assistant-command';
+          payload = {
+            message: assistantPrompt,
+            projectSummary: 'VeeCut Master Timeline',
+            currentTimeSeconds: 0,
+          };
+          break;
+
+        case 'ai_music_sfx':
+          setGenerationStatusText('Synthesizing cinematic audio track with neural synth engine...');
+          endpoint = '/api/ai/music-gen';
+          payload = {
+            prompt: musicPrompt,
+            genre: musicGenre,
+            mood: musicMood,
+            bpm: musicBpm,
+            durationSeconds: musicDuration,
+          };
+          break;
+
+        case 'ai_transcription':
+          setGenerationStatusText('Analyzing audio and transcribing speech with speaker diarization...');
+          endpoint = '/api/ai/speech-to-text';
+          payload = {
+            audioUrl: 'sample_audio_clip.mp3',
+            language: transcriptionLang,
+          };
+          break;
+
+        case 'ai_upscale':
+          setGenerationStatusText('Super-resolution neural model synthesizing sub-pixel details...');
+          endpoint = '/api/ai/upscale';
+          payload = {
+            scaleFactor: upscaleFactor,
+            enhancementModel: upscaleModel,
+            imageData: uploadedBgImage || uploadedObjImage,
+          };
+          break;
+
+        default:
+          endpoint = '/api/ai/video-generate';
+          payload = { prompt: videoPrompt };
+      }
+
+      // Handle Asynchronous Veo Video Generation
+      if (tool.id === 'ai_video_gen' || tool.id === 'ai_image_to_video') {
+        const startRes = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: abortController.signal,
+        });
+
+        const startData = await startRes.json().catch(() => ({}));
+        if (!startRes.ok) {
+          throw new Error(startData.error || `Failed to start video generation (HTTP ${startRes.status})`);
+        }
+
+        if (startData.operationName) {
+          setGenerationStatusText('Veo 3.1 neural operation in progress... Synthesizing frames');
+          let attempts = 0;
+          const maxAttempts = 60; // 5 minutes max
+          while (attempts < maxAttempts) {
+            if (abortController.signal.aborted) {
+              throw new DOMException('Generation cancelled by user', 'AbortError');
+            }
+            attempts++;
+            await new Promise((r) => setTimeout(r, 5000));
+            if (abortController.signal.aborted) {
+              throw new DOMException('Generation cancelled by user', 'AbortError');
+            }
+            const pollRes = await fetch('/api/ai/video-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ operationName: startData.operationName }),
+              signal: abortController.signal,
+            });
+            const pollData = await pollRes.json().catch(() => ({}));
+            if (pollData.error) {
+              throw new Error(pollData.error);
+            }
+            if (pollData.done) {
+              clearInterval(progressTimer);
+              setGenerationProgress(100);
+              const downloadUrl = pollData.videoUri
+                ? `/api/ai/video-download?uri=${encodeURIComponent(pollData.videoUri)}`
+                : null;
+              setResultData({
+                id: `veo_${Date.now()}`,
+                title: tool.id === 'ai_image_to_video' ? 'AI Animated Motion Shot' : 'Veo 3.1 Generative Video',
+                videoUrl: downloadUrl,
+                duration: payload.duration || 5,
+                aspectRatio: payload.aspectRatio || '16:9',
+                status: 'ready',
+              });
+              return;
+            }
+            setGenerationProgress((p) => Math.min(94, p + 2));
+            setGenerationStatusText(`Synthesizing frames with Veo 3.1 (${attempts * 5}s elapsed)...`);
+          }
+          throw new Error('Video generation timed out while waiting for Veo 3.1 operation to complete.');
+        } else if (startData.videoUrl) {
+          clearInterval(progressTimer);
+          setGenerationProgress(100);
+          setResultData(startData);
+          return;
+        } else {
+          throw new Error(startData.error || 'Failed to initialize video generation');
+        }
+      }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: abortController.signal,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Server returned status ${res.status}: ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      clearInterval(progressTimer);
+      setGenerationProgress(100);
+      setResultData(data);
+
+      if (data.captions) {
+        setEditableCaptions(data.captions);
+      }
+    } catch (err: any) {
+      clearInterval(progressTimer);
+      console.error('AI processing error:', err);
+      if (err.name === 'AbortError' || err.message?.includes('cancelled')) {
+        setErrorMsg(null);
+        setGenerationStatusText('Generation cancelled by user');
+      } else {
+        const isRateLimit =
+          err.message?.includes('429') ||
+          err.message?.includes('RESOURCE_EXHAUSTED') ||
+          err.message?.includes('quota');
+        setErrorMsg(
+          isRateLimit
+            ? 'Gemini API rate limit reached (60 RPM Free Tier). Please wait 20-30 seconds before retrying.'
+            : err.message || 'AI processing request failed. Please check your configuration and try again.'
+        );
+      }
+      setResultData(null);
+      setGenerationProgress(0);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCancelGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setIsGenerating(false);
+    setGenerationStatusText('Generation cancelled by user');
+    setGenerationProgress(0);
+  };
+
+  const handleSaveToLibrary = () => {
+    if (!resultData || !tool) return;
+    const payload = {
+      title: resultData?.title || `${tool.name} Result`,
+      type: tool.category,
+      assetUrl: resultData?.videoUrl || resultData?.imageUrl || resultData?.audioData || resultData?.audioUrl,
+      imageUrl: resultData?.imageUrl,
+      audioData: resultData?.audioData || resultData?.audioUrl,
+      videoUrl: resultData?.videoUrl,
+      colorGrade: resultData?.colorGrade,
+      captions: editableCaptions.length > 0 ? editableCaptions : resultData?.captions,
+      keyframes: resultData?.keyframes,
+      assistantActions: resultData?.actions,
+      durationSec: resultData?.duration || resultData?.durationSec || 5,
+    };
+    if (onSaveToMediaLibrary) {
+      onSaveToMediaLibrary(payload);
+    }
+    setIsSavedToMediaLibrary(true);
+  };
+
+  const handleApply = () => {
+    onApplyToTimeline({
+      title: resultData?.title || `${tool.name} Result`,
+      type: tool.category,
+      assetUrl: resultData?.videoUrl || resultData?.imageUrl || resultData?.audioData || resultData?.audioUrl,
+      imageUrl: resultData?.imageUrl,
+      audioData: resultData?.audioData || resultData?.audioUrl,
+      videoUrl: resultData?.videoUrl,
+      colorGrade: resultData?.colorGrade,
+      captions: editableCaptions.length > 0 ? editableCaptions : resultData?.captions,
+      keyframes: resultData?.keyframes,
+      assistantActions: resultData?.actions,
+      durationSec: resultData?.duration || resultData?.durationSec || 5,
+    });
+    onClose();
+  };
+
+  const toggleAudioPlay = () => {
+    const audioSrc = resultData?.audioData || resultData?.audioUrl;
+    if (audioSrc) {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
+      if (isPlayingAudio) {
+        setIsPlayingAudio(false);
+        return;
+      }
+      const audio = new Audio(audioSrc);
+      audio.onended = () => setIsPlayingAudio(false);
+      audio.onerror = () => setIsPlayingAudio(false);
+      audioPlayerRef.current = audio;
+      audio.play().then(() => setIsPlayingAudio(true)).catch(() => setIsPlayingAudio(false));
+    } else {
+      // Web Speech Synthesis fallback
+      if ('speechSynthesis' in window && voiceScript) {
+        if (isPlayingAudio) {
+          window.speechSynthesis.cancel();
+          setIsPlayingAudio(false);
+        } else {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(voiceScript);
+          utterance.rate = 0.95;
+          utterance.pitch = 1.0;
+          utterance.onstart = () => setIsPlayingAudio(true);
+          utterance.onend = () => setIsPlayingAudio(false);
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'bg' | 'obj') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          if (target === 'bg') setUploadedBgImage(reader.result);
+          if (target === 'obj') setUploadedObjImage(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCaptureCanvasFrame = (target: 'bg' | 'obj') => {
+    try {
+      const canvas = document.querySelector('canvas');
+      if (canvas && canvas.width > 0 && canvas.height > 0) {
+        const frameData = canvas.toDataURL('image/png');
+        if (target === 'bg') setUploadedBgImage(frameData);
+        if (target === 'obj') setUploadedObjImage(frameData);
+      }
+    } catch (e) {
+      console.warn('Could not capture frame from canvas:', e);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 select-none">
+      <div className="w-full max-w-2xl bg-[#0f111a] border border-zinc-750 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Modal Header */}
+        <div className="px-5 py-3.5 border-b border-zinc-800 flex items-center justify-between bg-[#0b0d14]">
+          <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-lg bg-gradient-to-tr ${tool.accentGradient} flex items-center justify-center text-white shadow-md`}>
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-white">{tool.name}</h2>
+                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
+                  {tool.badge || 'Neural Engine'}
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-400">{tool.description}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-400">
+              <span className={`w-1.5 h-1.5 rounded-full ${isGenerating ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
+              <span>{isGenerating ? 'Inference Active' : 'Gemini 3.8 Flash • Online'}</span>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-5 overflow-y-auto space-y-4 text-xs">
+          {/* TOOL 1: AI VIDEO GENERATOR */}
+          {tool.id === 'ai_video_gen' && (
+            <div className="space-y-3">
+              <div>
+                <label className="font-semibold text-zinc-300 mb-1 block">Video Generation Prompt</label>
+                <textarea
+                  value={videoPrompt}
+                  onChange={(e) => setVideoPrompt(e.target.value)}
+                  rows={2}
+                  className="w-full bg-[#141724] border border-zinc-750 focus:border-cyan-500 rounded-lg p-2.5 text-zinc-200 font-medium focus:outline-none transition leading-relaxed resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                <div>
+                  <label className="text-zinc-400 text-[10px] uppercase font-bold block mb-1">Visual Style</label>
+                  <select
+                    value={videoStyle}
+                    onChange={(e) => setVideoStyle(e.target.value)}
+                    className="w-full bg-[#141724] border border-zinc-750 rounded-lg px-2 py-1.5 text-zinc-200 font-medium focus:outline-none focus:border-cyan-500 cursor-pointer"
+                  >
+                    {['Cinematic', 'Cyberpunk', '3D Animation', 'Drone 4K', 'Hyperlapse', 'Anime'].map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-zinc-400 text-[10px] uppercase font-bold block mb-1">Duration</label>
+                  <select
+                    value={videoDuration}
+                    onChange={(e) => setVideoDuration(Number(e.target.value))}
+                    className="w-full bg-[#141724] border border-zinc-750 rounded-lg px-2 py-1.5 text-zinc-200 font-medium focus:outline-none focus:border-cyan-500 cursor-pointer"
+                  >
+                    {[3, 5, 8, 10].map((d) => (
+                      <option key={d} value={d}>{d} Seconds</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-zinc-400 text-[10px] uppercase font-bold block mb-1">Aspect Ratio</label>
+                  <select
+                    value={videoAspect}
+                    onChange={(e) => setVideoAspect(e.target.value)}
+                    className="w-full bg-[#141724] border border-zinc-750 rounded-lg px-2 py-1.5 text-zinc-200 font-medium focus:outline-none focus:border-cyan-500 cursor-pointer"
+                  >
+                    {['16:9', '9:16', '1:1'].map((a) => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TOOL 2: AI IMAGE GENERATOR */}
+          {tool.id === 'ai_image_gen' && (
+            <div className="space-y-3">
+              <div>
+                <label className="font-semibold text-zinc-300 mb-1 block">Image Prompt</label>
+                <textarea
+                  value={imagePrompt}
+                  onChange={(e) => setImagePrompt(e.target.value)}
+                  rows={2}
+                  className="w-full bg-[#141724] border border-zinc-750 focus:border-cyan-500 rounded-lg p-2.5 text-zinc-200 font-medium focus:outline-none transition leading-relaxed resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="text-zinc-400 text-[10px] uppercase font-bold block mb-1">Art Style</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['Photorealistic', 'Anime', '3D Render', 'Cyberpunk', 'Oil Painting'].map((st) => (
+                      <button
+                        key={st}
+                        onClick={() => setImageStyle(st)}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                          imageStyle === st
+                            ? 'bg-cyan-500 text-black font-bold'
+                            : 'bg-[#141724] text-zinc-300 hover:bg-zinc-800'
+                        }`}
+                      >
+                        {st}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-zinc-400 text-[10px] uppercase font-bold block mb-1">Aspect Ratio</label>
+                  <div className="flex gap-1.5">
+                    {['16:9', '9:16', '1:1', '4:3'].map((ar) => (
+                      <button
+                        key={ar}
+                        onClick={() => setImageAspect(ar)}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition cursor-pointer ${
+                          imageAspect === ar
+                            ? 'bg-cyan-500 text-black font-bold'
+                            : 'bg-[#141724] text-zinc-300 hover:bg-zinc-800'
+                        }`}
+                      >
+                        {ar}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TOOL 3: AI STYLE & COLOR TRANSFER */}
+          {tool.id === 'ai_style_transfer' && (
+            <div className="space-y-3">
+              <div>
+                <label className="font-semibold text-zinc-300 mb-1 block">Film Look / Color Preset</label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    'Kodak 35mm Film',
+                    'Teal & Orange',
+                    'Cyberpunk Tokyo',
+                    'Bleach Bypass',
+                    'Fuji Velvia Vivid',
+                    'Golden Hour Glow',
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      onClick={() => setStylePreset(preset)}
+                      className={`p-2 rounded-lg text-left transition text-[11px] border cursor-pointer ${
+                        stylePreset === preset
+                          ? 'border-cyan-400 bg-cyan-500/10 text-cyan-300 font-bold'
+                          : 'border-zinc-800 bg-[#141724] text-zinc-300 hover:border-zinc-700'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-zinc-400 mb-1">
+                  <span>Grading Intensity</span>
+                  <span className="font-mono text-cyan-400 font-bold">{styleIntensity}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={150}
+                  value={styleIntensity}
+                  onChange={(e) => setStyleIntensity(Number(e.target.value))}
+                  className="w-full accent-cyan-400"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* TOOL 4: AI BACKGROUND REMOVAL */}
+          {tool.id === 'ai_bg_removal' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-zinc-300 block">Cutout / Isolation Mode</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleCaptureCanvasFrame('bg')}
+                    className="text-[11px] text-cyan-400 hover:text-cyan-300 hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <span>Use Video Frame</span>
+                  </button>
+                  <span className="text-zinc-600">•</span>
+                  <label className="flex items-center gap-1 text-[11px] text-zinc-300 hover:text-white hover:underline cursor-pointer">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Upload Image</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(e, 'bg')}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {uploadedBgImage && (
+                <div className="flex items-center justify-between p-2 rounded-lg bg-zinc-900 border border-zinc-800">
+                  <div className="flex items-center gap-2">
+                    <img src={uploadedBgImage} alt="Input Frame" className="w-10 h-7 object-cover rounded border border-zinc-700" />
+                    <span className="text-[11px] text-zinc-300">Active Source Frame Ready</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setUploadedBgImage(null)}
+                    className="text-[10px] text-red-400 hover:underline cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { id: 'transparent', label: 'Transparent' },
+                  { id: 'blur', label: 'Blur Background' },
+                  { id: 'studio', label: 'Studio Dark' },
+                  { id: 'greenscreen', label: 'Green Screen' },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setBgMode(m.id as any)}
+                    className={`p-2 rounded-lg text-center transition text-[11px] border cursor-pointer ${
+                      bgMode === m.id
+                        ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300 font-bold'
+                        : 'border-zinc-800 bg-[#141724] text-zinc-300 hover:border-zinc-700'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              <div>
+                <div className="flex justify-between text-zinc-400 mb-1">
+                  <span>Edge Feathering</span>
+                  <span className="font-mono text-cyan-400 font-bold">{bgFeather}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={10}
+                  value={bgFeather}
+                  onChange={(e) => setBgFeather(Number(e.target.value))}
+                  className="w-full accent-cyan-400"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* TOOL 5: AI OBJECT REMOVAL */}
+          {tool.id === 'ai_object_removal' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-zinc-300 block">Object or Element to Erase</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleCaptureCanvasFrame('obj')}
+                    className="text-[11px] text-amber-400 hover:text-amber-300 hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <span>Use Video Frame</span>
+                  </button>
+                  <span className="text-zinc-600">•</span>
+                  <label className="flex items-center gap-1 text-[11px] text-zinc-300 hover:text-white hover:underline cursor-pointer">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Upload Image</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(e, 'obj')}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {uploadedObjImage && (
+                <div className="flex items-center justify-between p-2 rounded-lg bg-zinc-900 border border-zinc-800">
+                  <div className="flex items-center gap-2">
+                    <img src={uploadedObjImage} alt="Input Frame" className="w-10 h-7 object-cover rounded border border-zinc-700" />
+                    <span className="text-[11px] text-zinc-300">Active Source Frame Ready</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setUploadedObjImage(null)}
+                    className="text-[10px] text-red-400 hover:underline cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+
+              <input
+                type="text"
+                value={objectTarget}
+                onChange={(e) => setObjectTarget(e.target.value)}
+                placeholder="e.g. Microphone in upper right, Watermark, Person in background"
+                className="w-full bg-[#141724] border border-zinc-750 rounded-lg p-2 text-zinc-200 font-medium focus:outline-none focus:border-cyan-500"
+              />
+
+              <div className="flex gap-2">
+                {['Microphone', 'Watermark / Logo', 'Passerby in Background', 'Power lines'].map((sug) => (
+                  <button
+                    key={sug}
+                    onClick={() => setObjectTarget(sug)}
+                    className="px-2 py-1 rounded bg-[#141724] text-zinc-400 hover:text-white text-[10px] cursor-pointer"
+                  >
+                    + {sug}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TOOL 6: AI MOTION TRACKING */}
+          {tool.id === 'ai_motion_tracking' && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-zinc-300 mb-1 block">Tracking Subject</label>
+                  <select
+                    value={trackingTarget}
+                    onChange={(e) => setTrackingTarget(e.target.value)}
+                    className="w-full bg-[#141724] border border-zinc-750 rounded-lg px-2 py-1.5 text-zinc-200 cursor-pointer"
+                  >
+                    {['Subject Face', 'Moving Vehicle', 'Center Hand / Object', 'Floating Drone'].map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-zinc-300 mb-1 block">Attached Element</label>
+                  <select
+                    value={trackAttachment}
+                    onChange={(e) => setTrackAttachment(e.target.value)}
+                    className="w-full bg-[#141724] border border-zinc-750 rounded-lg px-2 py-1.5 text-zinc-200 cursor-pointer"
+                  >
+                    {['Pin 3D Text', 'Pin Animated Sticker', 'Mosaic Blur / Censor', 'Target Spotlight'].map((a) => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TOOL 7: AI AUTO CAPTIONS */}
+          {tool.id === 'ai_captions' && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-zinc-300 mb-1 block">Spoken Language</label>
+                  <select
+                    value={captionLang}
+                    onChange={(e) => setCaptionLang(e.target.value)}
+                    className="w-full bg-[#141724] border border-zinc-750 rounded-lg px-2 py-1.5 text-zinc-200 cursor-pointer"
+                  >
+                    {['English', 'Spanish', 'French', 'German', 'Japanese', 'Portuguese', 'Italian', 'Hindi'].map((l) => (
+                      <option key={l} value={l}>{l}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-zinc-300 mb-1 block">Typography Style</label>
+                  <select
+                    value={captionStyle}
+                    onChange={(e) => setCaptionStyle(e.target.value)}
+                    className="w-full bg-[#141724] border border-zinc-750 rounded-lg px-2 py-1.5 text-zinc-200 cursor-pointer"
+                  >
+                    {['Viral TikTok Karaoke', 'Clean Cinema Subtitle', 'Pop Bouncy Word', 'Neon Glow Box'].map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TOOL 8: AI VOICE TTS */}
+          {tool.id === 'ai_voice' && (
+            <div className="space-y-3">
+              <div>
+                <label className="font-semibold text-zinc-300 mb-1 block">Voiceover Script</label>
+                <textarea
+                  value={voiceScript}
+                  onChange={(e) => setVoiceScript(e.target.value)}
+                  rows={2}
+                  className="w-full bg-[#141724] border border-zinc-750 focus:border-cyan-500 rounded-lg p-2.5 text-zinc-200 font-medium focus:outline-none transition leading-relaxed resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-zinc-400 text-[10px] uppercase font-bold block mb-1">Studio Voice</label>
+                  <select
+                    value={voiceName}
+                    onChange={(e) => setVoiceName(e.target.value)}
+                    className="w-full bg-[#141724] border border-zinc-750 rounded-lg px-2 py-1.5 text-zinc-200 cursor-pointer"
+                  >
+                    {[
+                      { id: 'Puck', desc: 'Puck (Deep Cinematic)' },
+                      { id: 'Charon', desc: 'Charon (Warm & Friendly)' },
+                      { id: 'Kore', desc: 'Kore (Bright & Expressive)' },
+                      { id: 'Fenrir', desc: 'Fenrir (Authoritative)' },
+                      { id: 'Zephyr', desc: 'Zephyr (Gentle & Calm)' },
+                    ].map((v) => (
+                      <option key={v.id} value={v.id}>{v.desc}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-zinc-400 text-[10px] uppercase font-bold block mb-1">Emotion & Tone</label>
+                  <select
+                    value={voiceEmotion}
+                    onChange={(e) => setVoiceEmotion(e.target.value)}
+                    className="w-full bg-[#141724] border border-zinc-750 rounded-lg px-2 py-1.5 text-zinc-200 cursor-pointer"
+                  >
+                    {['Cinematic Narrator', 'Energetic Vlog', 'Storyteller', 'News Anchor', 'Gentle Whisper'].map((em) => (
+                      <option key={em} value={em}>{em}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TOOL 9: AI AUDIO ENHANCEMENT */}
+          {tool.id === 'ai_audio_enhance' && (
+            <div className="space-y-3">
+              <div>
+                <label className="font-semibold text-zinc-300 mb-1 block">Enhancement Profile</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    'Studio Vocal Clarity',
+                    'Wind & Background De-Noise',
+                    'Room De-Reverb',
+                    'Broadcast Leveler',
+                    'Warm Tube Saturation',
+                  ].map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setAudioProfile(p)}
+                      className={`p-2 rounded-lg text-left text-[11px] border transition cursor-pointer ${
+                        audioProfile === p
+                          ? 'border-cyan-400 bg-cyan-500/10 text-cyan-300 font-bold'
+                          : 'border-zinc-800 bg-[#141724] text-zinc-300 hover:border-zinc-700'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="flex justify-between text-zinc-400 mb-1">
+                    <span>Noise Suppression</span>
+                    <span className="font-mono text-cyan-400 font-bold">{noiseReductionVal}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={noiseReductionVal}
+                    onChange={(e) => setNoiseReductionVal(Number(e.target.value))}
+                    className="w-full accent-cyan-400"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between text-zinc-400 mb-1">
+                    <span>De-Reverb</span>
+                    <span className="font-mono text-cyan-400 font-bold">{deReverbVal}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={deReverbVal}
+                    onChange={(e) => setDeReverbVal(Number(e.target.value))}
+                    className="w-full accent-cyan-400"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TOOL 10: AI VIDEO ASSISTANT */}
+          {tool.id === 'ai_assistant' && (
+            <div className="space-y-3">
+              <div>
+                <label className="font-semibold text-zinc-300 mb-1 block">Timeline Natural Language Command</label>
+                <textarea
+                  value={assistantPrompt}
+                  onChange={(e) => setAssistantPrompt(e.target.value)}
+                  rows={2}
+                  placeholder="e.g. Add a bold title 'CINEMATIC VLOG', apply warm golden hour color grade, and split clip at playhead"
+                  className="w-full bg-[#141724] border border-zinc-750 focus:border-amber-400 rounded-lg p-2.5 text-zinc-200 font-medium focus:outline-none transition leading-relaxed resize-none"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  'Add title "SUMMER MASTER"',
+                  'Apply Cyberpunk Neon grade',
+                  'Split clip at playhead',
+                  'Add sub bass impact sound effect',
+                ].map((cmd) => (
+                  <button
+                    key={cmd}
+                    onClick={() => setAssistantPrompt(cmd)}
+                    className="px-2 py-1 rounded bg-[#141724] text-zinc-400 hover:text-amber-300 text-[10px] border border-zinc-800 hover:border-amber-500/40 cursor-pointer"
+                  >
+                    + {cmd}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TOOL 11: AI 4K/8K UPSCALER */}
+          {tool.id === 'ai_upscale' && (
+            <div className="space-y-3">
+              <div>
+                <label className="font-semibold text-zinc-300 mb-1 block">Target Resolution Factor</label>
+                <div className="flex gap-2">
+                  {[
+                    { f: '2x', label: '2x (FHD → 4K UHD)' },
+                    { f: '4x', label: '4x (720p → 4K UHD)' },
+                    { f: '8x', label: '8x (FHD → 8K Cinema)' },
+                  ].map((item) => (
+                    <button
+                      key={item.f}
+                      onClick={() => setUpscaleFactor(item.f)}
+                      className={`flex-1 py-2 rounded-lg text-center font-mono text-[11px] border transition cursor-pointer ${
+                        upscaleFactor === item.f
+                          ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300 font-bold'
+                          : 'border-zinc-800 bg-[#141724] text-zinc-300 hover:border-zinc-700'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-zinc-400 text-[10px] uppercase font-bold block mb-1">Neural Model</label>
+                <select
+                  value={upscaleModel}
+                  onChange={(e) => setUpscaleModel(e.target.value)}
+                  className="w-full bg-[#141724] border border-zinc-750 rounded-lg px-2 py-1.5 text-zinc-200 cursor-pointer"
+                >
+                  {['Super-Resolution Neural', 'Edge Sharpness & Detail', 'Artifact & Grain Reducer'].map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* TOOL 12: AI MUSIC & SFX GENERATOR */}
+          {tool.id === 'ai_music_sfx' && (
+            <div className="space-y-3">
+              <div>
+                <label className="font-semibold text-zinc-300 mb-1 block">Music Generation Prompt</label>
+                <textarea
+                  value={musicPrompt}
+                  onChange={(e) => setMusicPrompt(e.target.value)}
+                  rows={2}
+                  className="w-full bg-[#141724] border border-zinc-750 focus:border-cyan-500 rounded-lg p-2.5 text-zinc-200 font-medium focus:outline-none transition leading-relaxed resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                <div>
+                  <label className="text-zinc-400 text-[10px] uppercase font-bold block mb-1">Genre</label>
+                  <select
+                    value={musicGenre}
+                    onChange={(e) => setMusicGenre(e.target.value)}
+                    className="w-full bg-[#141724] border border-zinc-750 rounded-lg px-2 py-1.5 text-zinc-200 cursor-pointer"
+                  >
+                    {['Cinematic', 'Synthwave', 'Lofi Hip-Hop', 'Trailer Orchestral', 'Ambient Drone', 'Trap Electronic'].map((g) => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-zinc-400 text-[10px] uppercase font-bold block mb-1">Mood</label>
+                  <select
+                    value={musicMood}
+                    onChange={(e) => setMusicMood(e.target.value)}
+                    className="w-full bg-[#141724] border border-zinc-750 rounded-lg px-2 py-1.5 text-zinc-200 cursor-pointer"
+                  >
+                    {['Epic', 'Mysterious', 'Chill', 'Uplifting', 'Dark Suspense', 'Action'].map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-zinc-400 text-[10px] uppercase font-bold block mb-1">Duration & Tempo</label>
+                  <div className="flex gap-1.5">
+                    <select
+                      value={musicDuration}
+                      onChange={(e) => setMusicDuration(Number(e.target.value))}
+                      className="w-1/2 bg-[#141724] border border-zinc-750 rounded-lg px-1.5 py-1.5 text-zinc-200 text-[11px] cursor-pointer"
+                    >
+                      <option value={15}>15s</option>
+                      <option value={30}>30s</option>
+                      <option value={60}>60s</option>
+                    </select>
+                    <input
+                      type="number"
+                      value={musicBpm}
+                      onChange={(e) => setMusicBpm(Number(e.target.value))}
+                      min={60}
+                      max={180}
+                      className="w-1/2 bg-[#141724] border border-zinc-750 rounded-lg px-1.5 py-1.5 text-zinc-200 text-[11px] text-center"
+                      title="BPM"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TOOL 13: AI SPEECH-TO-TEXT WORKSPACE */}
+          {tool.id === 'ai_transcription' && (
+            <div className="space-y-3">
+              <div>
+                <label className="font-semibold text-zinc-300 mb-1 block">Transcription Prompt & Context</label>
+                <textarea
+                  value={transcriptionPrompt}
+                  onChange={(e) => setTranscriptionPrompt(e.target.value)}
+                  rows={2}
+                  className="w-full bg-[#141724] border border-zinc-750 focus:border-cyan-500 rounded-lg p-2.5 text-zinc-200 font-medium focus:outline-none transition leading-relaxed resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-zinc-400 text-[10px] uppercase font-bold block mb-1">Spoken Language</label>
+                  <select
+                    value={transcriptionLang}
+                    onChange={(e) => setTranscriptionLang(e.target.value)}
+                    className="w-full bg-[#141724] border border-zinc-750 rounded-lg px-2 py-1.5 text-zinc-200 cursor-pointer"
+                  >
+                    {['auto', 'en', 'es', 'fr', 'de', 'ja', 'zh'].map((l) => (
+                      <option key={l} value={l}>
+                        {l === 'auto' ? 'Auto-Detect Language' : l.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-zinc-400 text-[10px] uppercase font-bold block mb-1">Speaker Diarization</label>
+                  <div className="flex items-center gap-2 h-9 px-3 rounded-lg bg-[#141724] border border-zinc-750 text-cyan-300 text-xs">
+                    <Check className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Auto Multi-Speaker Split</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Live Preview Area */}
+          <div className="relative aspect-video rounded-xl bg-black border border-zinc-800 overflow-hidden flex items-center justify-center p-3">
+            {isGenerating ? (
+              <div className="flex flex-col items-center gap-3 text-center">
+                <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin" />
+                <div>
+                  <p className="text-xs font-bold text-white">Neural Processing {generationProgress}%</p>
+                  <p className="text-[11px] text-zinc-400">{generationStatusText}</p>
+                </div>
+                <div className="w-56 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-cyan-400 transition-all duration-300"
+                    style={{ width: `${generationProgress}%` }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCancelGeneration}
+                  className="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 text-[11px] font-bold transition cursor-pointer"
+                >
+                  <StopCircle className="w-3.5 h-3.5" />
+                  <span>Cancel Generation</span>
+                </button>
+              </div>
+            ) : resultData ? (
+              <div className="relative w-full h-full flex flex-col items-center justify-center rounded-lg overflow-hidden">
+                {/* TOOL 1: VIDEO GEN & IMAGE TO VIDEO PREVIEW */}
+                {(tool.id === 'ai_video_gen' || tool.id === 'ai_image_to_video') && (
+                  resultData.videoUrl ? (
+                    <div className="relative w-full h-full flex items-center justify-center bg-black rounded-lg overflow-hidden">
+                      <video
+                        src={resultData.videoUrl}
+                        controls
+                        autoPlay
+                        loop
+                        playsInline
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="relative w-full h-full bg-gradient-to-tr from-cyan-950/60 via-slate-900 to-black rounded-lg border border-cyan-500/40 p-4 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono text-[10px] font-bold border border-cyan-500/30">
+                          {resultData.resolution || '1080p'} • Veo 3.1 • {resultData.aspectRatio || videoAspect}
+                        </span>
+                        <span className="text-[10px] text-zinc-400 font-mono">{videoDuration}s Video</span>
+                      </div>
+                      <div className="text-center py-2">
+                        <Video className="w-9 h-9 text-cyan-400 mx-auto mb-1.5 animate-pulse" />
+                        <p className="text-xs font-bold text-white">{resultData.title || 'Generative Cinematic Shot'}</p>
+                        <p className="text-[10px] text-cyan-300/80 mt-0.5">Veo 3.1 Neural Output Ready</p>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-zinc-400 border-t border-zinc-800/80 pt-1.5">
+                        <span>Status: Rendered</span>
+                        <span className="text-cyan-400 font-semibold">Ready for Timeline</span>
+                      </div>
+                    </div>
+                  )
+                )}
+
+                {/* TOOL 2: IMAGE GEN PREVIEW */}
+                {tool.id === 'ai_image_gen' && (
+                  <div className="relative w-full h-full flex items-center justify-center bg-zinc-900 rounded-lg overflow-hidden">
+                    {resultData.imageUrl ? (
+                      <img
+                        src={resultData.imageUrl}
+                        alt="AI Generated"
+                        className="w-full h-full object-contain rounded-lg"
+                      />
+                    ) : (
+                      <div className="text-center p-4">
+                        <ImageIcon className="w-8 h-8 text-purple-400 mx-auto mb-1.5" />
+                        <p className="text-xs font-bold text-white">Photorealistic Still Synthesized</p>
+                        <p className="text-[10px] text-zinc-400 mt-1">{resultData.prompt?.substring(0, 60)}...</p>
+                      </div>
+                    )}
+                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 backdrop-blur-sm text-purple-300 font-mono text-[9px] border border-purple-500/30">
+                      {resultData.style || imageStyle} • {resultData.aspectRatio || imageAspect}
+                    </div>
+                  </div>
+                )}
+
+                {/* TOOL 3: STYLE TRANSFER PREVIEW */}
+                {tool.id === 'ai_style_transfer' && (
+                  <div className="relative w-full h-full bg-gradient-to-tr from-pink-950/40 via-zinc-900 to-black rounded-lg border border-pink-500/30 p-4 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-pink-300 font-bold text-xs">{resultData.filterName || stylePreset}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-300 text-[10px] font-mono">
+                        {resultData.lutLook || '35mm Film Grade'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 my-2 text-center text-[10px]">
+                      <div className="bg-black/50 p-1 rounded border border-zinc-800">
+                        <span className="text-zinc-400 block">Temp</span>
+                        <span className="text-pink-400 font-mono font-bold">{resultData.colorGrade?.temp ?? '+24'}</span>
+                      </div>
+                      <div className="bg-black/50 p-1 rounded border border-zinc-800">
+                        <span className="text-zinc-400 block">Contrast</span>
+                        <span className="text-pink-400 font-mono font-bold">{resultData.colorGrade?.contrast ?? '1.25'}</span>
+                      </div>
+                      <div className="bg-black/50 p-1 rounded border border-zinc-800">
+                        <span className="text-zinc-400 block">Vignette</span>
+                        <span className="text-pink-400 font-mono font-bold">{resultData.colorGrade?.vignette ?? '0.28'}</span>
+                      </div>
+                      <div className="bg-black/50 p-1 rounded border border-zinc-800">
+                        <span className="text-zinc-400 block">Grain</span>
+                        <span className="text-pink-400 font-mono font-bold">{resultData.colorGrade?.grain ?? '22'}</span>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-zinc-400 text-center italic">{resultData.description || 'Parametric Color LUT solved'}</p>
+                  </div>
+                )}
+
+                {/* TOOL 4: BG REMOVAL PREVIEW */}
+                {tool.id === 'ai_bg_removal' && (
+                  <div className="relative w-full h-full bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:12px_12px] bg-zinc-950 rounded-lg border border-emerald-500/30 flex flex-col items-center justify-center p-4 text-center">
+                    {resultData.imageUrl ? (
+                      <img src={resultData.imageUrl} alt="Cutout" className="max-h-36 object-contain" />
+                    ) : (
+                      <>
+                        <div className="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-400 flex items-center justify-center mb-2">
+                          <Scissors className="w-6 h-6" />
+                        </div>
+                        <p className="text-xs font-bold text-white">Subject Isolated ({resultData.mode || bgMode})</p>
+                        <p className="text-[10px] text-emerald-300 font-mono mt-0.5">{resultData.edgeRefinement || 'Hair-level alpha matte with edge despill'}</p>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* TOOL 5: OBJECT REMOVAL PREVIEW */}
+                {tool.id === 'ai_object_removal' && (
+                  <div className="relative w-full h-full bg-gradient-to-tr from-amber-950/40 via-zinc-900 to-black rounded-lg border border-amber-500/30 flex flex-col items-center justify-center p-4 text-center">
+                    <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-400 flex items-center justify-center mb-2">
+                      <Eraser className="w-6 h-6" />
+                    </div>
+                    <p className="text-xs font-bold text-white">Object Erased: "{resultData.targetDescription || objectTarget}"</p>
+                    <p className="text-[10px] text-amber-300 font-mono mt-0.5">Clean Plate Reconstructed • Confidence: {((resultData.confidence || 0.985) * 100).toFixed(1)}%</p>
+                  </div>
+                )}
+
+                {/* TOOL 6: MOTION TRACKING PREVIEW */}
+                {tool.id === 'ai_motion_tracking' && (
+                  <div className="relative w-full h-full bg-slate-950 rounded-lg border border-blue-500/40 p-3 flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-blue-300 font-bold">Target: {resultData.targetName || trackingTarget}</span>
+                      <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-300 rounded font-mono">
+                        {resultData.keyframes?.length || 30} Trajectory Keyframes
+                      </span>
+                    </div>
+                    <div className="relative h-20 bg-black/60 rounded border border-zinc-800 flex items-center justify-center overflow-hidden">
+                      <div className="absolute inset-x-4 h-0.5 bg-blue-500/40" />
+                      <div className="w-8 h-8 rounded-full border-2 border-blue-400 bg-blue-500/30 flex items-center justify-center text-white text-[9px] font-mono animate-bounce">
+                        <Crosshair className="w-4 h-4 text-blue-400" />
+                      </div>
+                    </div>
+                    <div className="text-center text-[10px] text-zinc-400">
+                      Mode: <span className="text-blue-400 font-medium">{resultData.trackingMode || trackAttachment}</span> (3D Planar Drift Solved)
+                    </div>
+                  </div>
+                )}
+
+                {/* TOOL 7: AUTO CAPTIONS PREVIEW */}
+                {tool.id === 'ai_captions' && (
+                  <div className="relative w-full h-full bg-gradient-to-tr from-violet-950/40 via-zinc-900 to-black rounded-lg border border-violet-500/30 p-3 flex flex-col justify-between overflow-hidden">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-violet-300 font-bold">{resultData.language || captionLang} Transcription</span>
+                      <span className="px-1.5 py-0.5 bg-violet-500/20 text-violet-300 rounded font-mono">
+                        {editableCaptions.length || 3} Timed Cues
+                      </span>
+                    </div>
+                    <div className="space-y-1 my-1 overflow-y-auto max-h-24">
+                      {editableCaptions.map((cue: any, idx: number) => (
+                        <div key={cue.id || idx} className="bg-black/50 p-1.5 rounded border border-zinc-800 text-[11px] flex items-center justify-between">
+                          <input
+                            type="text"
+                            value={cue.text}
+                            onChange={(e) => {
+                              const updated = [...editableCaptions];
+                              updated[idx].text = e.target.value;
+                              setEditableCaptions(updated);
+                            }}
+                            className="bg-transparent text-white font-medium focus:outline-none flex-1"
+                          />
+                          <span className="text-violet-400 font-mono text-[9px] ml-2">
+                            {((cue.startMs || 0) / 1000).toFixed(1)}s - {((cue.endMs || 1500) / 1000).toFixed(1)}s
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-center text-[10px] text-violet-300 font-semibold">
+                      Style: {resultData.style || captionStyle}
+                    </div>
+                  </div>
+                )}
+
+                {/* TOOL 8: VOICE TTS PREVIEW */}
+                {tool.id === 'ai_voice' && (
+                  <div className="space-y-2 text-center">
+                    <button
+                      onClick={toggleAudioPlay}
+                      className="w-12 h-12 rounded-full bg-cyan-400 text-black flex items-center justify-center mx-auto shadow-lg hover:scale-105 transition cursor-pointer"
+                    >
+                      {isPlayingAudio ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 fill-black translate-x-0.5" />}
+                    </button>
+                    <div className="text-white font-bold text-xs">{voiceName} Studio Voice ({voiceEmotion})</div>
+                    <div className="text-cyan-300 font-mono text-[10px]">
+                      {isPlayingAudio ? 'Playing Synthesized Voiceover...' : 'Click Play to Preview Audio'}
+                    </div>
+                  </div>
+                )}
+
+                {/* TOOL 9: AUDIO ENHANCEMENT PREVIEW */}
+                {tool.id === 'ai_audio_enhance' && (
+                  <div className="relative w-full h-full bg-gradient-to-tr from-indigo-950/40 via-zinc-900 to-black rounded-lg border border-indigo-500/30 p-4 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-indigo-300 font-bold text-xs">{resultData.profile || audioProfile}</span>
+                      <span className="text-[10px] font-mono text-zinc-400">Target: {resultData.loudnessTargetLufs || -14.0} LUFS</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 my-2 text-center text-[10px]">
+                      <div className="bg-black/50 p-1.5 rounded border border-zinc-800">
+                        <span className="text-zinc-400 block">Noise Floor</span>
+                        <span className="text-indigo-400 font-mono font-bold">{resultData.noiseFloorDb || -54} dB</span>
+                      </div>
+                      <div className="bg-black/50 p-1.5 rounded border border-zinc-800">
+                        <span className="text-zinc-400 block">De-Reverb</span>
+                        <span className="text-indigo-400 font-mono font-bold">{resultData.deReverbPercent || deReverbVal}%</span>
+                      </div>
+                      <div className="bg-black/50 p-1.5 rounded border border-zinc-800">
+                        <span className="text-zinc-400 block">Vocal Gain</span>
+                        <span className="text-indigo-400 font-mono font-bold">+{resultData.vocalBoostGainDb || 3.5} dB</span>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-zinc-400 text-center">Compressor: {resultData.dynamicRangeCompression || '3.5:1 ratio studio match'}</p>
+                  </div>
+                )}
+
+                {/* TOOL 10: AI VIDEO ASSISTANT PREVIEW */}
+                {tool.id === 'ai_assistant' && (
+                  <div className="relative w-full h-full bg-gradient-to-tr from-amber-950/40 via-zinc-900 to-black rounded-lg border border-amber-500/30 p-3.5 flex flex-col justify-between">
+                    <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
+                      <Bot className="w-4 h-4" />
+                      <span>Copilot Actions Ready</span>
+                    </div>
+                    <p className="text-zinc-200 text-[11px] leading-relaxed my-2">
+                      {resultData.responseText || 'Generated structured timeline actions to apply to your project.'}
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {(resultData.actions || []).map((act: any, idx: number) => (
+                        <span key={idx} className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono border border-amber-500/30">
+                          {act.type}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* TOOL 11: 4K/8K UPSCALER PREVIEW */}
+                {tool.id === 'ai_upscale' && (
+                  <div className="relative w-full h-full bg-gradient-to-tr from-rose-950/40 via-zinc-900 to-black rounded-lg border border-rose-500/30 p-4 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-rose-300 font-bold text-xs">{resultData.enhancementModel || upscaleModel}</span>
+                      <span className="px-2 py-0.5 bg-rose-500/20 text-rose-300 rounded font-mono text-[10px]">
+                        Factor: {resultData.scaleFactor || upscaleFactor}
+                      </span>
+                    </div>
+                    <div className="text-center my-2">
+                      <p className="text-zinc-400 text-[10px]">{resultData.inputResolution || '1920 x 1080 (FHD)'} ➔</p>
+                      <p className="text-white font-mono font-extrabold text-sm text-rose-300">{resultData.outputResolution || '3840 x 2160 (4K UHD)'}</p>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-zinc-400 border-t border-zinc-800/80 pt-1.5">
+                      <span>Fidelity: {((resultData.fidelityScore || 0.994) * 100).toFixed(1)}%</span>
+                      <span className="text-rose-400 font-semibold">{resultData.temporalStability || 'Motion-compensated'}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* TOOL 12: AI MUSIC & SFX PREVIEW */}
+                {tool.id === 'ai_music_sfx' && (
+                  <div className="relative w-full h-full bg-gradient-to-tr from-pink-950/40 via-zinc-900 to-black rounded-lg border border-pink-500/30 p-4 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Volume2 className="w-4 h-4 text-pink-400" />
+                        <span className="text-pink-300 font-bold text-xs">
+                          {resultData.title || `${musicGenre} Track (${musicMood})`}
+                        </span>
+                      </div>
+                      <span className="px-2 py-0.5 bg-pink-500/20 text-pink-300 rounded font-mono text-[10px]">
+                        {resultData.bpm || musicBpm} BPM • {resultData.durationSeconds || musicDuration}s
+                      </span>
+                    </div>
+
+                    <div className="my-2 flex flex-col items-center justify-center gap-2">
+                      <button
+                        onClick={toggleAudioPlay}
+                        className="w-12 h-12 rounded-full bg-pink-500 text-white flex items-center justify-center shadow-lg hover:scale-105 transition cursor-pointer"
+                      >
+                        {isPlayingAudio ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 fill-white translate-x-0.5" />}
+                      </button>
+                      <div className="text-[10px] text-pink-200 font-mono">
+                        {isPlayingAudio ? 'Playing Generated Track...' : 'Click Play to Listen'}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-zinc-400 border-t border-zinc-800/80 pt-1.5">
+                      <span>Key: {resultData.key || 'D minor'}</span>
+                      <span className="text-pink-400 font-semibold">{resultData.genre || musicGenre}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* TOOL 13: AI SPEECH-TO-TEXT PREVIEW */}
+                {tool.id === 'ai_transcription' && (
+                  <div className="relative w-full h-full bg-gradient-to-tr from-amber-950/40 via-zinc-900 to-black rounded-lg border border-amber-500/30 p-3.5 flex flex-col justify-between overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className="text-amber-300 font-bold text-xs">Audio Transcript</span>
+                      <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded font-mono text-[10px]">
+                        Confidence: {((resultData.confidence || 0.985) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 my-2 overflow-y-auto max-h-24 p-2 bg-black/40 rounded border border-zinc-800 text-[11px] text-zinc-200 leading-relaxed">
+                      {resultData.transcript ||
+                        resultData.text ||
+                        'Speaker 1: Welcome to VeeCut Studio. We are generating high-impact videos with synchronized AI audio tracks.'}
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-zinc-400 border-t border-zinc-800/80 pt-1.5">
+                      <span>Language: {resultData.detectedLanguage || transcriptionLang}</span>
+                      <span className="text-amber-400 font-semibold">Diarization Complete</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : errorMsg ? (
+              <div className="text-center text-red-400 p-4 max-w-md">
+                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-400" />
+                <p className="text-xs font-bold text-red-300 mb-1">AI Request Error</p>
+                <p className="text-[11px] text-zinc-300 leading-relaxed mb-3">{errorMsg}</p>
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  className="px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-[11px] font-semibold hover:bg-red-500/30 transition cursor-pointer"
+                >
+                  Retry Request
+                </button>
+              </div>
+            ) : (
+              <div className="text-center text-zinc-400">
+                <Sparkles className="w-8 h-8 mx-auto mb-2 text-zinc-400" />
+                <p className="text-xs font-medium text-zinc-300">Ready to execute {tool.name}</p>
+                <p className="text-[10px] text-zinc-400 mt-0.5">Click "Generate with AI" to communicate with model</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="px-5 py-3 bg-[#0b0d14] border-t border-zinc-800 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white transition cursor-pointer"
+          >
+            Close
+          </button>
+
+          <div className="flex items-center gap-2.5">
+            {isGenerating ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCancelGeneration}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 font-bold text-xs transition cursor-pointer"
+                >
+                  <StopCircle className="w-3.5 h-3.5" />
+                  <span>Cancel</span>
+                </button>
+                <div className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-400/20 text-cyan-300 border border-cyan-400/30 font-bold text-xs">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Processing with AI...</span>
+                </div>
+              </div>
+            ) : !resultData ? (
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isGenerating}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-black font-extrabold text-xs shadow-md shadow-cyan-400/20 active:scale-95 transition disabled:opacity-50 cursor-pointer"
+              >
+                <Wand2 className="w-3.5 h-3.5" />
+                <span>Generate with AI</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-semibold border border-white/10 transition cursor-pointer"
+                  title="Regenerate with current settings"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveToLibrary}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                    isSavedToMediaLibrary
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      : 'bg-white/10 hover:bg-white/20 text-white border-white/10'
+                  }`}
+                >
+                  {isSavedToMediaLibrary ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Saved to Media Pool</span>
+                    </>
+                  ) : (
+                    <>
+                      <FolderPlus className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Save to Media Library</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleApply}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-black font-extrabold text-xs shadow-md shadow-cyan-400/20 active:scale-95 transition cursor-pointer"
+                >
+                  <span>Add to Timeline & Open Studio</span>
+                  <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

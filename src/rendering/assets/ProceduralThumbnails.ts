@@ -1,0 +1,477 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { ColorEngine } from '../color/ColorEngine';
+import { FilterPreset } from '../../domain/preset/Preset';
+
+// Procedural high-fidelity image generators for VeeCut sample media
+export function createCinematicThumbnail(type: 'man_bokeh' | 'sunset' | 'city_night' | 'forest' | 'drone' | 'waveform' | 'logo', width = 640, height = 360): string {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d')!;
+
+  if (type === 'man_bokeh') {
+    // Warm cinematic night city bokeh background + man profile
+    const grad = ctx.createLinearGradient(0, 0, width, height);
+    grad.addColorStop(0, '#0c0d18');
+    grad.addColorStop(0.5, '#1e142b');
+    grad.addColorStop(1, '#2c131d');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Warm glowing bokeh circles in background
+    const bokehColors = ['rgba(249, 115, 22, 0.45)', 'rgba(234, 88, 12, 0.35)', 'rgba(236, 72, 153, 0.3)', 'rgba(168, 85, 247, 0.3)', 'rgba(251, 191, 36, 0.4)'];
+    const bokehs = [
+      { x: width * 0.75, y: height * 0.35, r: 65, c: bokehColors[0] },
+      { x: width * 0.85, y: height * 0.55, r: 90, c: bokehColors[1] },
+      { x: width * 0.65, y: height * 0.65, r: 50, c: bokehColors[4] },
+      { x: width * 0.9, y: height * 0.25, r: 40, c: bokehColors[2] },
+      { x: width * 0.55, y: height * 0.4, r: 75, c: bokehColors[3] },
+      { x: width * 0.2, y: height * 0.7, r: 80, c: bokehColors[0] },
+    ];
+    bokehs.forEach(b => {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fillStyle = b.c;
+      ctx.fill();
+    });
+
+    // Silhouette of handsome young man with curly hair and jacket rim lit by orange/amber bokeh
+    const cx = width * 0.45;
+    const cy = height * 0.55;
+
+    // Body / shoulders / dark hoodie
+    ctx.fillStyle = '#0f111a';
+    ctx.beginPath();
+    ctx.moveTo(cx - 180, height);
+    ctx.quadraticCurveTo(cx - 90, cy + 90, cx - 40, cy + 50);
+    ctx.lineTo(cx + 100, cy + 60);
+    ctx.quadraticCurveTo(cx + 160, cy + 110, cx + 240, height);
+    ctx.closePath();
+    ctx.fill();
+
+    // Head / neck / face profile
+    ctx.fillStyle = '#b47055'; // warm skin tone
+    ctx.beginPath();
+    ctx.moveTo(cx - 10, cy + 40); // neck left
+    ctx.lineTo(cx + 45, cy + 40); // neck right
+    ctx.lineTo(cx + 50, cy - 10); // jaw angle
+    ctx.lineTo(cx + 70, cy - 25); // chin
+    ctx.lineTo(cx + 68, cy - 38); // lips
+    ctx.lineTo(cx + 78, cy - 48); // nose tip
+    ctx.lineTo(cx + 62, cy - 65); // brow
+    ctx.lineTo(cx + 50, cy - 85); // forehead
+    ctx.lineTo(cx - 30, cy - 80); // back head
+    ctx.lineTo(cx - 40, cy + 10); // neck back
+    ctx.closePath();
+    ctx.fill();
+
+    // Curly dark hair
+    ctx.fillStyle = '#110e17';
+    for (let i = 0; i < 18; i++) {
+      const hx = cx + Math.cos(i * 0.4) * 55 - 5;
+      const hy = cy - 75 + Math.sin(i * 0.4) * 35;
+      ctx.beginPath();
+      ctx.arc(hx, hy, 18, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Warm amber rim light on face and jaw
+    ctx.strokeStyle = '#f97316';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(cx + 50, cy - 85);
+    ctx.lineTo(cx + 62, cy - 65);
+    ctx.lineTo(cx + 78, cy - 48);
+    ctx.lineTo(cx + 68, cy - 38);
+    ctx.lineTo(cx + 70, cy - 25);
+    ctx.stroke();
+
+    // Subtle cool fill light on jacket
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx - 120, height);
+    ctx.lineTo(cx - 40, cy + 50);
+    ctx.stroke();
+
+  } else if (type === 'sunset') {
+    // Cinematic sunset over mountain ranges
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#1e1b4b');
+    grad.addColorStop(0.35, '#831843');
+    grad.addColorStop(0.65, '#ea580c');
+    grad.addColorStop(1, '#facc15');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Glowing sun disk
+    ctx.beginPath();
+    ctx.arc(width * 0.5, height * 0.65, 45, 0, Math.PI * 2);
+    ctx.fillStyle = '#fffbeb';
+    ctx.shadowColor = '#f59e0b';
+    ctx.shadowBlur = 35;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Mountain layers
+    ctx.fillStyle = '#4c0519';
+    ctx.beginPath();
+    ctx.moveTo(0, height);
+    ctx.lineTo(0, height * 0.6);
+    ctx.lineTo(width * 0.25, height * 0.45);
+    ctx.lineTo(width * 0.55, height * 0.68);
+    ctx.lineTo(width * 0.8, height * 0.48);
+    ctx.lineTo(width, height * 0.62);
+    ctx.lineTo(width, height);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#1c0714';
+    ctx.beginPath();
+    ctx.moveTo(0, height);
+    ctx.lineTo(0, height * 0.75);
+    ctx.lineTo(width * 0.35, height * 0.62);
+    ctx.lineTo(width * 0.7, height * 0.78);
+    ctx.lineTo(width, height * 0.68);
+    ctx.lineTo(width, height);
+    ctx.closePath();
+    ctx.fill();
+
+  } else if (type === 'city_night') {
+    // Glowing neon skyscrapers / city skyline
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#090a12');
+    grad.addColorStop(0.7, '#14122e');
+    grad.addColorStop(1, '#1e113a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Neon city buildings
+    const colors = ['#38bdf8', '#c084fc', '#f43f5e', '#a855f7', '#06b6d4'];
+    for (let x = 10; x < width - 10; x += 32) {
+      const bHeight = 80 + Math.sin(x * 12.3) * 60 + (x % 70) * 1.5;
+      const bColor = colors[Math.floor((x / 32) % colors.length)];
+      ctx.fillStyle = '#0a0b16';
+      ctx.fillRect(x, height - bHeight, 26, bHeight);
+
+      // Windows
+      ctx.fillStyle = bColor;
+      for (let wy = height - bHeight + 8; wy < height - 10; wy += 14) {
+        for (let wx = x + 4; wx < x + 22; wx += 6) {
+          if (Math.sin(wx * 11 + wy * 7) > -0.2) {
+            ctx.fillRect(wx, wy, 3, 5);
+          }
+        }
+      }
+    }
+
+  } else if (type === 'forest') {
+    // Lush green forest pathway
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#064e3b');
+    grad.addColorStop(0.5, '#047857');
+    grad.addColorStop(1, '#065f46');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Sun rays
+    ctx.fillStyle = 'rgba(254, 240, 138, 0.15)';
+    for (let i = 0; i < 6; i++) {
+      ctx.beginPath();
+      ctx.moveTo(width * 0.5 + i * 30, 0);
+      ctx.lineTo(width * 0.2 + i * 60, height);
+      ctx.lineTo(width * 0.28 + i * 60, height);
+      ctx.lineTo(width * 0.55 + i * 30, 0);
+      ctx.fill();
+    }
+
+    // Tall dark trees
+    ctx.fillStyle = '#022c22';
+    for (let i = 0; i < 12; i++) {
+      const tx = 20 + i * (width / 11);
+      const tw = 12 + (i % 4) * 4;
+      ctx.fillRect(tx, 0, tw, height);
+    }
+
+  } else if (type === 'drone') {
+    // Coastal ocean and tropical turquoise beach road
+    const grad = ctx.createLinearGradient(0, 0, width, height);
+    grad.addColorStop(0, '#0284c7');
+    grad.addColorStop(0.5, '#06b6d4');
+    grad.addColorStop(0.7, '#2dd4bf');
+    grad.addColorStop(1, '#fef08a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Mountain coastline
+    ctx.fillStyle = '#15803d';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(width * 0.45, 0);
+    ctx.quadraticCurveTo(width * 0.5, height * 0.6, 0, height);
+    ctx.closePath();
+    ctx.fill();
+
+    // Winding coastline road
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(0, height * 0.85);
+    ctx.quadraticCurveTo(width * 0.38, height * 0.5, width * 0.35, 0);
+    ctx.stroke();
+
+  } else if (type === 'waveform') {
+    // Neon purple/cyan audio waveform
+    ctx.fillStyle = '#090a14';
+    ctx.fillRect(0, 0, width, height);
+
+    const grad = ctx.createLinearGradient(0, 0, width, 0);
+    grad.addColorStop(0, '#38bdf8');
+    grad.addColorStop(0.5, '#a855f7');
+    grad.addColorStop(1, '#ec4899');
+    ctx.fillStyle = grad;
+
+    const bars = 48;
+    const barWidth = width / bars;
+    for (let i = 0; i < bars; i++) {
+      const val = Math.abs(Math.sin(i * 0.35) * 0.8 + Math.cos(i * 0.7) * 0.4);
+      const bHeight = Math.max(8, val * (height * 0.75));
+      ctx.fillRect(i * barWidth + 2, (height - bHeight) / 2, barWidth - 4, bHeight);
+    }
+
+  } else if (type === 'logo') {
+    // Authentic VeeCut 3D Logo Emblem (Dark Emerald Green + Champagne Gold + Filmstrip V)
+    const bgGrad = ctx.createRadialGradient(width / 2, height / 2, 10, width / 2, height / 2, width * 0.7);
+    bgGrad.addColorStop(0, '#0a2318');
+    bgGrad.addColorStop(0.6, '#04130d');
+    bgGrad.addColorStop(1, '#020906');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    const cx = width / 2;
+    const cy = height * 0.44;
+    const emblemSize = Math.min(width, height) * 0.28;
+
+    // Rounded emblem badge with champagne gold border
+    const badgeR = emblemSize * 1.15;
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(cx - badgeR, cy - badgeR, badgeR * 2, badgeR * 2, 22);
+    ctx.fillStyle = '#061b12';
+    ctx.fill();
+    ctx.lineWidth = 3;
+    const goldGrad = ctx.createLinearGradient(cx - badgeR, cy - badgeR, cx + badgeR, cy + badgeR);
+    goldGrad.addColorStop(0, '#f9e7a2');
+    goldGrad.addColorStop(0.3, '#d4af37');
+    goldGrad.addColorStop(0.7, '#f3d980');
+    goldGrad.addColorStop(1, '#aa820a');
+    ctx.strokeStyle = goldGrad;
+    ctx.stroke();
+
+    // 3D Metallic V Emblem with Play Button
+    ctx.beginPath();
+    ctx.moveTo(cx - emblemSize * 0.75, cy - emblemSize * 0.65);
+    ctx.lineTo(cx - emblemSize * 0.35, cy - emblemSize * 0.65);
+    ctx.lineTo(cx, cy + emblemSize * 0.55);
+    ctx.lineTo(cx + emblemSize * 0.35, cy - emblemSize * 0.65);
+    ctx.lineTo(cx + emblemSize * 0.75, cy - emblemSize * 0.65);
+    ctx.lineTo(cx + emblemSize * 0.15, cy + emblemSize * 0.85);
+    ctx.lineTo(cx - emblemSize * 0.15, cy + emblemSize * 0.85);
+    ctx.closePath();
+    ctx.fillStyle = goldGrad;
+    ctx.shadowColor = 'rgba(212, 175, 55, 0.4)';
+    ctx.shadowBlur = 15;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Play triangle in the center
+    ctx.beginPath();
+    const playSize = emblemSize * 0.26;
+    ctx.moveTo(cx - playSize * 0.45, cy - playSize * 0.55);
+    ctx.lineTo(cx + playSize * 0.65, cy);
+    ctx.lineTo(cx - playSize * 0.45, cy + playSize * 0.55);
+    ctx.closePath();
+    ctx.fillStyle = '#072418';
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#f9e7a2';
+    ctx.stroke();
+    ctx.restore();
+
+    // "VeeCut" Text
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '900 32px sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('VeeCut', cx, height * 0.80);
+
+    // "EDITING APP" Subtitle
+    ctx.font = '700 11px sans-serif';
+    ctx.fillStyle = '#d4af37';
+    ctx.fillText('EDITING APP', cx, height * 0.88);
+  }
+
+  return canvas.toDataURL('image/jpeg', 0.92);
+}
+
+/**
+ * Procedurally draws a rich, photorealistic landscape testing ground
+ * containing dynamic sky gradients, sun highlights, alpine crags,
+ * and lush forest greenery to showcase color filter responses.
+ */
+export function generateReferenceLandscape(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  // 1. Sky & Horizon Gradient
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, height * 0.7);
+  skyGrad.addColorStop(0, '#0284c7');   // Rich mountain blue
+  skyGrad.addColorStop(0.35, '#38bdf8'); // Cyan daylight
+  skyGrad.addColorStop(0.7, '#bae6fd');  // Horizon atmosphere
+  skyGrad.addColorStop(1, '#fef08a');    // Warm sunlight glow near horizon
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, width, height * 0.7);
+
+  // 2. Soft atmospheric sun disk
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(width * 0.72, height * 0.32, width * 0.12, 0, Math.PI * 2);
+  const sunGrad = ctx.createRadialGradient(width * 0.72, height * 0.32, 0, width * 0.72, height * 0.32, width * 0.12);
+  sunGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+  sunGrad.addColorStop(0.4, 'rgba(254, 240, 138, 0.6)');
+  sunGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+  ctx.fillStyle = sunGrad;
+  ctx.fill();
+  ctx.restore();
+
+  // 3. Clouds
+  ctx.save();
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+  const drawCloud = (cx: number, cy: number, r: number) => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.arc(cx + r * 0.8, cy - r * 0.2, r * 0.7, 0, Math.PI * 2);
+    ctx.arc(cx - r * 0.7, cy + r * 0.1, r * 0.6, 0, Math.PI * 2);
+    ctx.arc(cx + r * 1.5, cy + r * 0.15, r * 0.65, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  drawCloud(width * 0.25, height * 0.22, width * 0.08);
+  drawCloud(width * 0.82, height * 0.18, width * 0.06);
+  ctx.restore();
+
+  // 4. Distant Alpine Mountain Peaks (snowcaps + granite shadows)
+  ctx.fillStyle = '#334155'; // Granite shadow
+  ctx.beginPath();
+  ctx.moveTo(0, height * 0.65);
+  ctx.lineTo(width * 0.15, height * 0.42);
+  ctx.lineTo(width * 0.38, height * 0.58);
+  ctx.lineTo(width * 0.58, height * 0.36);
+  ctx.lineTo(width * 0.85, height * 0.52);
+  ctx.lineTo(width, height * 0.44);
+  ctx.lineTo(width, height * 0.8);
+  ctx.lineTo(0, height * 0.8);
+  ctx.closePath();
+  ctx.fill();
+
+  // Snowcaps on peaks
+  ctx.fillStyle = '#f8fafc';
+  ctx.beginPath();
+  ctx.moveTo(width * 0.15, height * 0.42);
+  ctx.lineTo(width * 0.20, height * 0.49);
+  ctx.lineTo(width * 0.12, height * 0.48);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(width * 0.58, height * 0.36);
+  ctx.lineTo(width * 0.65, height * 0.46);
+  ctx.lineTo(width * 0.52, height * 0.44);
+  ctx.closePath();
+  ctx.fill();
+
+  // 5. Midground Rolling Evergreen Pine Forest
+  ctx.fillStyle = '#166534'; // Deep forest green
+  ctx.beginPath();
+  ctx.moveTo(0, height * 0.72);
+  for (let x = 0; x <= width; x += width * 0.04) {
+    const yPeak = height * 0.54 + Math.sin(x * 0.08) * (height * 0.06);
+    ctx.lineTo(x, yPeak);
+  }
+  ctx.lineTo(width, height);
+  ctx.lineTo(0, height);
+  ctx.closePath();
+  ctx.fill();
+
+  // 6. Foreground Vibrant Canopy, Lake Reflection & Riverbank
+  const waterGrad = ctx.createLinearGradient(0, height * 0.75, 0, height);
+  waterGrad.addColorStop(0, '#0369a1');
+  waterGrad.addColorStop(0.5, '#0e7490');
+  waterGrad.addColorStop(1, '#064e3b');
+  ctx.fillStyle = waterGrad;
+  ctx.fillRect(0, height * 0.75, width, height * 0.25);
+
+  // Sunlight shimmer on water
+  ctx.fillStyle = 'rgba(254, 240, 138, 0.4)';
+  for (let i = 0; i < 8; i++) {
+    const y = height * (0.8 + i * 0.024);
+    const x = width * 0.55 + (Math.sin(i * 1.5) * width * 0.15);
+    ctx.fillRect(x - width * 0.08, y, width * 0.16, height * 0.012);
+  }
+
+  // Foreground Foliage (Rich Emerald & Olive)
+  ctx.fillStyle = '#15803d';
+  ctx.beginPath();
+  ctx.arc(width * 0.12, height * 0.95, width * 0.22, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#22c55e'; // Highlighted leaves
+  ctx.beginPath();
+  ctx.arc(width * 0.08, height * 0.92, width * 0.12, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#047857';
+  ctx.beginPath();
+  ctx.arc(width * 0.92, height * 0.96, width * 0.24, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#10b981';
+  ctx.beginPath();
+  ctx.arc(width * 0.96, height * 0.92, width * 0.14, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+const filterThumbnailCache = new Map<string, string>();
+
+/**
+ * Generates an authentic filter preview thumbnail directly from ColorEngine.
+ * Uses the exact same color grading and pixel processing architecture
+ * as the preview canvas and export pipeline.
+ */
+export function getProcessedFilterThumbnail(preset: FilterPreset, width = 240, height = 135): string {
+  const cacheKey = `${preset.id}_${width}x${height}`;
+  if (filterThumbnailCache.has(cacheKey)) {
+    return filterThumbnailCache.get(cacheKey)!;
+  }
+
+  // Create canvas for rendering
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  // 1. Draw standard reference landscape ground
+  generateReferenceLandscape(ctx, width, height);
+
+  // 2. Process through ColorEngine using the preset's actual ColorGrade
+  if (preset.colorGrade) {
+    ColorEngine.applyColorGrade(ctx, width, height, preset.colorGrade);
+  }
+
+  // 3. Export as fast, high-quality data URL
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+  filterThumbnailCache.set(cacheKey, dataUrl);
+  return dataUrl;
+}
+

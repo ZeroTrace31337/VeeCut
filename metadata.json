@@ -1,0 +1,11 @@
+{
+  "name": "VeeCut",
+  "description": "A professional non-linear video, audio, and color grading editor combining the simplicity and speed of CapCut with the professional capabilities of DaVinci Resolve.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
