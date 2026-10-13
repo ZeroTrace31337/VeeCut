@@ -12,6 +12,10 @@ import { TranscriptionTab } from './tabs/TranscriptionTab';
 import { MusicTab } from './tabs/MusicTab';
 import { VoiceTab } from './tabs/VoiceTab';
 import { ImagesTab } from './tabs/ImagesTab';
+import { CaptionsTab } from './tabs/CaptionsTab';
+import { TranslationTab } from './tabs/TranslationTab';
+import { SmartEditorTab } from './tabs/SmartEditorTab';
+import { ModelRegistryTab } from './tabs/ModelRegistryTab';
 import { useAiStudioJobs } from '../../domain/ai/studio/useAiStudioJobs';
 import { useEditor } from '../context/EditorContext';
 
@@ -115,6 +119,12 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
           />
         )}
 
+        {activeTab === 'captions' && <CaptionsTab />}
+
+        {activeTab === 'translation' && <TranslationTab />}
+
+        {activeTab === 'smart_editor' && <SmartEditorTab />}
+
         {activeTab === 'music' && (
           <MusicTab
             onStartJob={startJob}
@@ -145,6 +155,8 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
             onAnimateWithVeo={handleAnimateImageWithVeo}
           />
         )}
+
+        {activeTab === 'models' && <ModelRegistryTab />}
       </main>
     </div>
   );

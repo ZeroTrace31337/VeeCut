@@ -17,6 +17,7 @@ import {
   RefreshCw,
   Image as ImageIcon,
   Compass,
+  AlertCircle,
 } from 'lucide-react';
 import { AiJob, ImageToVideoRequest } from '../../../domain/ai/studio/AiStudioProvider';
 import { useEditor } from '../../context/EditorContext';
@@ -59,6 +60,7 @@ export const ImageToVideoTab: React.FC<ImageToVideoTabProps> = ({
   const [motionPrompt, setMotionPrompt] = useState(
     'Subtle atmospheric mist rolling across scene, natural cinematic lighting'
   );
+  const [negativePrompt, setNegativePrompt] = useState('blurry, jittery, distorted, low quality, static');
   const [cameraMotion, setCameraMotion] = useState<'Pan Right' | 'Pan Left' | 'Zoom In' | 'Zoom Out' | 'Tilt Up' | 'Tilt Down' | 'Drone Orbit' | 'Static'>('Pan Right');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16'>('16:9');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -276,8 +278,30 @@ export const ImageToVideoTab: React.FC<ImageToVideoTabProps> = ({
               value={motionPrompt}
               onChange={(e) => setMotionPrompt(e.target.value)}
               placeholder="e.g. Atmospheric lighting shifts, gentle hair blowing in the wind..."
-              className="w-full bg-[#0c0e14] border border-zinc-800 focus:border-emerald-500 rounded-lg p-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none"
+              className="w-full bg-[#0c0e14] border border-zinc-800 focus:border-emerald-500 rounded-lg p-2.5 text-xs text-white placeholder-zinc-500 focus:outline-hidden"
             />
+
+            <div className="space-y-1">
+              <label className="text-[11px] text-zinc-400 block font-medium">Negative Prompt</label>
+              <input
+                type="text"
+                value={negativePrompt}
+                onChange={(e) => setNegativePrompt(e.target.value)}
+                placeholder="What to exclude from animated video..."
+                className="w-full bg-[#0c0e14] border border-zinc-800 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-hidden"
+              />
+            </div>
+
+            {/* Hardware & Runtime Notice */}
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-400">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <span className="text-zinc-200 font-semibold block">Execution Requirement</span>
+                <p className="text-[11px] leading-relaxed">
+                  Requires compatible GPU/local runtime or supported inference provider.
+                </p>
+              </div>
+            </div>
 
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button

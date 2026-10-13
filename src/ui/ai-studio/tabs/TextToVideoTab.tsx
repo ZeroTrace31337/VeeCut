@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Clock,
   Compass,
+  AlertCircle,
 } from 'lucide-react';
 import { AiJob, TextToVideoRequest } from '../../../domain/ai/studio/AiStudioProvider';
 import { useEditor } from '../../context/EditorContext';
@@ -66,6 +67,8 @@ export const TextToVideoTab: React.FC<TextToVideoTabProps> = ({
   const [prompt, setPrompt] = useState(
     'Cinematic aerial drone shot over majestic mountain ridge with volumetric mist at sunset, 4K'
   );
+  const [negativePrompt, setNegativePrompt] = useState('blurry, jittery, distorted, low quality, static');
+  const [motionStrength, setMotionStrength] = useState(5);
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16'>('16:9');
   const [resolution, setResolution] = useState<'720p' | '1080p'>('1080p');
   const [duration, setDuration] = useState(5);
@@ -203,6 +206,45 @@ export const TextToVideoTab: React.FC<TextToVideoTabProps> = ({
                   {s}
                 </button>
               ))}
+            </div>
+
+            {/* Negative Prompt */}
+            <div className="space-y-1 pt-2 border-t border-zinc-800/80">
+              <label className="text-[11px] font-medium text-zinc-400">Negative Prompt</label>
+              <input
+                type="text"
+                value={negativePrompt}
+                onChange={(e) => setNegativePrompt(e.target.value)}
+                placeholder="What to exclude from video..."
+                className="w-full bg-[#0c0e14] border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-hidden focus:border-emerald-500"
+              />
+            </div>
+
+            {/* Motion Strength */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-medium text-zinc-400">Motion Strength</label>
+                <span className="text-[10px] font-mono text-emerald-400">{motionStrength}/10</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={motionStrength}
+                onChange={(e) => setMotionStrength(Number(e.target.value))}
+                className="w-full accent-emerald-500"
+              />
+            </div>
+          </div>
+
+          {/* Hardware & Runtime Notice */}
+          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-[#121520] border border-zinc-800 text-xs text-zinc-400">
+            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <span className="text-zinc-200 font-semibold block">Execution Requirement</span>
+              <p className="text-[11px] leading-relaxed">
+                Requires compatible GPU/local runtime or supported inference provider.
+              </p>
             </div>
           </div>
 

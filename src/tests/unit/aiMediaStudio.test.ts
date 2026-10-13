@@ -67,6 +67,8 @@ export async function runAiMediaStudioUnitTests(): Promise<TestResult[]> {
       id: 'seq_test_ai',
       name: 'Sequence',
       timecodeStart: createRationalTime(0),
+      duration: createRationalTime(0),
+      markers: [],
       frameRate: { numerator: 60, denominator: 1 },
       tracks: [
         createTrack('track_v1', 'V1', 'video'),
@@ -74,7 +76,7 @@ export async function runAiMediaStudioUnitTests(): Promise<TestResult[]> {
       ],
     };
 
-    const timelineEngine = new TimelineEngine(seq);
+    const timelineEngine = new TimelineEngine(seq as any);
     const processor = new BrowserMediaProcessor();
     const mediaRegistry = new MediaRegistry(processor);
 
@@ -105,7 +107,7 @@ export async function runAiMediaStudioUnitTests(): Promise<TestResult[]> {
     );
     (clip as any).mediaAssetId = generatedVideoAsset.id;
 
-    timelineEngine.addClip('track_v1', clip);
+    timelineEngine.addClip('track_v1', clip as any);
     const clipsOnTrack = timelineEngine.getClipsForTrack('track_v1');
     if (clipsOnTrack.length !== 1 || clipsOnTrack[0].name !== generatedVideoAsset.name) {
       throw new Error('Timeline failed to hold AI clip with fidelity');

@@ -22,6 +22,11 @@ import {
   AlertCircle,
   Film,
   Zap,
+  Languages,
+  Wand2,
+  Subtitles,
+  Scissors,
+  Sliders,
 } from 'lucide-react';
 import { AiStudioTab } from '../components/AiMediaStudioHeader';
 import { AiJob } from '../../../domain/ai/studio/AiStudioProvider';
@@ -45,68 +50,88 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 }) => {
   const { applyAIResultToTimeline, saveAIResultToMediaPool } = useEditor();
   const [quickPrompt, setQuickPrompt] = useState('');
-  const [quickType, setQuickType] = useState<'text_to_video' | 'image_generation' | 'music_generation'>('text_to_video');
+  const [quickType, setQuickType] = useState<'text_to_video' | 'image_generation' | 'music_generation'>('image_generation');
 
   const capabilities = [
     {
-      id: 'text_to_video' as AiStudioTab,
-      title: 'Text to Video',
-      model: 'Veo 3 (veo-3.1-fast-generate-preview)',
-      description: 'Generate high-fidelity cinematic video footage directly from natural language prompts.',
-      icon: Video,
-      accent: 'emerald',
-      ratio: '16:9 / 9:16',
-      tags: ['4K / 1080p', 'Cinematic', 'Veo 3 Fast'],
-    },
-    {
-      id: 'image_to_video' as AiStudioTab,
-      title: 'Image to Video',
-      model: 'Veo 3 Motion Animate',
-      description: 'Transform still photographs and generated concept art into fluid moving camera shots.',
-      icon: Clapperboard,
-      accent: 'emerald',
-      ratio: '16:9 / 9:16',
-      tags: ['Pan & Zoom', 'Drone Orbit', 'Camera Control'],
+      id: 'images' as AiStudioTab,
+      title: 'AI Image & BG Cutout',
+      model: 'FLUX.1 Schnell & Local Saliency',
+      description: 'Generate high-res stills with FLUX, remove backgrounds with alpha matting, and upscale up to 4x.',
+      icon: ImageIcon,
+      tier: 'FREE TIER & LOCAL',
+      badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+      tags: ['FLUX.1', 'RMBG Cutout', 'Super-Res 4x'],
     },
     {
       id: 'transcription' as AiStudioTab,
-      title: 'Audio to Transcript',
-      model: 'Gemini 3.5 Transcribe',
-      description: 'Transcribe spoken audio with microsecond timestamp cues and generate timeline subtitle tracks.',
+      title: 'Speech to Text & SRT',
+      model: 'Local Web Speech & Whisper v3',
+      description: 'Zero-cost offline speech-to-text recognition with millisecond timestamp cues, SRT & VTT exports.',
       icon: FileAudio,
-      accent: 'emerald',
-      ratio: 'Multi-language',
-      tags: ['SRT & VTT', 'Word Cues', 'Auto Subtitles'],
-    },
-    {
-      id: 'music' as AiStudioTab,
-      title: 'AI Music Generation',
-      model: 'Lyria Neural Audio Engine',
-      description: 'Compose original background scores, trailer themes, and rhythmic tracks matching your edits.',
-      icon: Music,
-      accent: 'amber',
-      ratio: '24-bit WAV',
-      tags: ['BPM Tempo', 'Custom Moods', 'Orchestral / Lo-Fi'],
+      tier: 'FREE / LOCAL',
+      badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+      tags: ['Zero Latency', 'Whisper v3', 'SRT / VTT'],
     },
     {
       id: 'voice' as AiStudioTab,
-      title: 'AI Voice Conversation',
-      model: 'Gemini 3.8 Flash Voice',
-      description: 'Synthesize single narrations or multi-speaker podcast dialogues with expressive vocal personas.',
+      title: 'AI Voice & Speech TTS',
+      model: 'Meta MMS-TTS & Browser Synthesis',
+      description: 'Zero-cost voice generator supporting English, Urdu, Pashto, Spanish, and global accents with live audio export.',
       icon: Mic,
-      accent: 'emerald',
-      ratio: 'Multi-speaker',
-      tags: ['Dual Dialogue', '5 Prebuilt Voices', 'Script Sync'],
+      tier: 'FREE / LOCAL',
+      badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+      tags: ['Urdu / Pashto', 'WAV Export', 'Meta MMS'],
     },
     {
-      id: 'images' as AiStudioTab,
-      title: 'Image Gen & Editing',
-      model: 'Gemini 3.1 Flash Image',
-      description: 'Generate production-ready textures, background plates, and seamlessly edit existing imagery.',
-      icon: ImageIcon,
-      accent: 'amber',
-      ratio: '1:1, 16:9, 9:16',
-      tags: ['Inpainting', 'Style Transfer', 'Animate with Veo'],
+      id: 'captions' as AiStudioTab,
+      title: 'Auto Captions & Styling',
+      model: 'Karaoke & Timeline Styler',
+      description: 'Build animated subtitle tracks with custom typography, bounce animations, and position controls.',
+      icon: Subtitles,
+      tier: 'FREE / LOCAL',
+      badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+      tags: ['Karaoke', 'Custom Fonts', 'Direct Timeline'],
+    },
+    {
+      id: 'translation' as AiStudioTab,
+      title: 'AI Transcript Translation',
+      model: 'Meta NLLB-200',
+      description: 'High-fidelity multilingual translation for video transcripts: English ↔ Urdu, English ↔ Pashto, and 200+ tongues.',
+      icon: Languages,
+      tier: 'FREE TIER',
+      badgeClass: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+      tags: ['English ↔ Urdu', 'Pashto', '200+ Languages'],
+    },
+    {
+      id: 'smart_editor' as AiStudioTab,
+      title: 'AI Smart Editor',
+      model: 'VeeCut Copilot Schema',
+      description: 'Type natural language instructions to auto-cut silence, generate captions, add soundtracks, and trim clips.',
+      icon: Wand2,
+      tier: 'FREE / LOCAL',
+      badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+      tags: ['Cut Silence', '30s Cuts', 'Verified Actions'],
+    },
+    {
+      id: 'text_to_video' as AiStudioTab,
+      title: 'Text to Video',
+      model: 'Open Weights & Veo 3',
+      description: 'Generate cinematic video shots from natural language prompts with camera motion trajectories.',
+      icon: Video,
+      tier: 'FREE / OPTIONAL PAID',
+      badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+      tags: ['1080p', '16:9 / 9:16', 'ModelScope / Veo'],
+    },
+    {
+      id: 'models' as AiStudioTab,
+      title: 'Central Model Registry',
+      model: 'Model Catalog & Licenses',
+      description: 'Transparent inventory of all open-source, local, and external models with truthful cost attribution.',
+      icon: Layers,
+      tier: 'CATALOG',
+      badgeClass: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+      tags: ['Open Weights', 'Truthful Labels', 'Apache 2.0 / MIT'],
     },
   ];
 
@@ -114,29 +139,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     e.preventDefault();
     if (!quickPrompt.trim()) return;
 
-    if (quickType === 'text_to_video') {
-      onStartQuickJob('text_to_video', {
-        prompt: quickPrompt,
-        aspectRatio: '16:9',
-        resolution: '720p',
-        duration: 5,
-      });
-      onSelectTab('text_to_video');
-    } else if (quickType === 'image_generation') {
-      onStartQuickJob('image_generation', {
-        prompt: quickPrompt,
-        aspectRatio: '16:9',
-        style: 'Cinematic',
-      });
+    if (quickType === 'image_generation') {
       onSelectTab('images');
+    } else if (quickType === 'text_to_video') {
+      onSelectTab('text_to_video');
     } else if (quickType === 'music_generation') {
-      onStartQuickJob('music_generation', {
-        prompt: quickPrompt,
-        genre: 'Cinematic',
-        mood: 'Epic',
-        durationSeconds: 20,
-        bpm: 120,
-      });
       onSelectTab('music');
     }
   };
@@ -146,7 +153,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     try {
       await applyAIResultToTimeline({
         title: job.output.title || `AI ${job.type}`,
-        type: job.type === 'music_generation' || job.type === 'voice_conversation' ? 'Audio Mixing' : job.type === 'audio_to_transcript' ? 'captions' : 'ai_video',
+        type:
+          job.type === 'music_generation' || job.type === 'voice_conversation'
+            ? 'Audio Mixing'
+            : job.type === 'audio_to_transcript'
+            ? 'captions'
+            : 'ai_video',
         videoUrl: job.output.videoUrl,
         imageUrl: job.output.imageUrl,
         audioData: job.output.audioData || job.output.audioUrl,
@@ -164,17 +176,22 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     try {
       const asset = await saveAIResultToMediaPool({
         title: job.output.title || `AI ${job.type}`,
-        type: job.type === 'music_generation' || job.type === 'voice_conversation' ? 'Audio Mixing' : job.type === 'audio_to_transcript' ? 'captions' : 'ai_video',
+        type:
+          job.type === 'music_generation' || job.type === 'voice_conversation'
+            ? 'Audio Mixing'
+            : job.type === 'audio_to_transcript'
+            ? 'captions'
+            : 'ai_video',
         videoUrl: job.output.videoUrl,
         imageUrl: job.output.imageUrl,
         audioData: job.output.audioData || job.output.audioUrl,
         durationSec: job.output.duration || job.output.durationSeconds || job.output.durationSec || 5,
       });
       if (asset) {
-        notifyToast(`Saved "${asset.name}" to Media Pool!`, 'success');
+        notifyToast(`Saved "${asset.name}" to Media Library!`, 'success');
       }
     } catch (err: any) {
-      notifyToast(err.message || 'Failed to save to Media Pool', 'error');
+      notifyToast(err.message || 'Failed to save to Media Library', 'error');
     }
   };
 
@@ -183,119 +200,115 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       {/* 1. Hero & Quick Launcher Banner */}
       <div className="relative rounded-2xl bg-[#121520] border border-zinc-800/80 p-5 sm:p-6 overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-48 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-48 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold">
-                  Unified AI Media Studio
+                <span className="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold flex items-center gap-1">
+                  <Zap className="w-3 h-3" />
+                  Zero-Cost & Open-Source AI Architecture
                 </span>
-                <span className="text-[11px] font-mono text-zinc-500">6 Core Capabilities</span>
+                <span className="text-[11px] font-mono text-zinc-500">Hugging Face & Local Engines</span>
               </div>
               <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-1">
-                Create, Animate & Score Your Project
+                VeeCut Open AI Suite
               </h2>
               <p className="text-zinc-400 text-xs sm:text-sm max-w-2xl mt-0.5">
-                Generate high-resolution video with Veo 3, animate still images, transcribe audio, synthesize music tracks, craft dual-speaker conversations, and send every result directly to the timeline.
+                Generate images with FLUX.1, transcribe speech with Whisper, synthesize Urdu/Pashto/English voiceovers, remove backgrounds locally, and execute smart editor commands with zero mandatory cloud fees.
               </p>
             </div>
+
+            <button
+              onClick={() => onSelectTab('models')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 text-xs font-semibold text-zinc-300 hover:text-white transition shrink-0"
+            >
+              <Layers className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Model Registry & Licenses</span>
+            </button>
           </div>
 
-          {/* Quick Prompt Bar */}
-          <form onSubmit={handleQuickSubmit} className="pt-2">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-[#0c0e14] border border-zinc-800 rounded-xl p-1.5 focus-within:border-emerald-500/60 transition">
-              <div className="flex items-center gap-1 px-2 shrink-0 border-b sm:border-b-0 sm:border-r border-zinc-800/80 pb-1 sm:pb-0">
-                <select
-                  value={quickType}
-                  onChange={(e: any) => setQuickType(e.target.value)}
-                  className="bg-transparent text-xs text-zinc-300 font-semibold focus:outline-none cursor-pointer py-1"
-                >
-                  <option value="text_to_video" className="bg-zinc-900 text-white">Text to Video</option>
-                  <option value="image_generation" className="bg-zinc-900 text-white">AI Image</option>
-                  <option value="music_generation" className="bg-zinc-900 text-white">AI Music</option>
-                </select>
-              </div>
+          {/* Quick Launcher Form */}
+          <form onSubmit={handleQuickSubmit} className="flex flex-col sm:flex-row gap-2 pt-2">
+            <select
+              value={quickType}
+              onChange={(e) => setQuickType(e.target.value as any)}
+              className="bg-zinc-950/80 border border-zinc-700/80 rounded-lg px-3 py-2 text-xs font-semibold text-white focus:outline-hidden focus:border-emerald-500 shrink-0"
+            >
+              <option value="image_generation">AI Image (FLUX.1)</option>
+              <option value="text_to_video">AI Video</option>
+              <option value="music_generation">AI Music</option>
+            </select>
 
-              <input
-                type="text"
-                value={quickPrompt}
-                onChange={(e) => setQuickPrompt(e.target.value)}
-                placeholder={
-                  quickType === 'text_to_video'
-                    ? "e.g. Drone flight through glowing neon rainforest canopy at twilight, 4K..."
-                    : quickType === 'image_generation'
-                    ? "e.g. Cinematic wide anamorphic photograph of a lone astronaut on Mars..."
-                    : "e.g. Epic cinematic trailer score with deep sub bass drops and sweeping strings..."
-                }
-                className="flex-1 bg-transparent px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none"
-              />
+            <input
+              type="text"
+              value={quickPrompt}
+              onChange={(e) => setQuickPrompt(e.target.value)}
+              placeholder="Enter a prompt to create an asset for your timeline..."
+              className="flex-1 bg-zinc-950/80 border border-zinc-700/80 rounded-lg px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-hidden focus:border-emerald-500"
+            />
 
-              <button
-                type="submit"
-                className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs flex items-center justify-center gap-1.5 shrink-0 transition active:scale-95 shadow-xs shadow-emerald-500/20"
-              >
-                <Sparkles className="w-3.5 h-3.5 fill-black" />
-                <span>Generate</span>
-              </button>
-            </div>
+            <button
+              type="submit"
+              className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5 shadow-md shrink-0"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Launch Studio</span>
+            </button>
           </form>
         </div>
       </div>
 
-      {/* 2. 6 Core Creative Capabilities Grid */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-zinc-200 tracking-tight">Studio Capabilities</h3>
-          <span className="text-[11px] text-zinc-500">Every asset connects to VeeCut Timeline</span>
+      {/* 2. Grid of Capabilities */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-white tracking-tight uppercase font-mono">
+            AI Tools & Pipelines ({capabilities.length})
+          </h3>
+          <span className="text-xs text-zinc-500">Click any card to open dedicated workspace</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-          {capabilities.map((cap) => {
-            const Icon = cap.icon;
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {capabilities.map((c) => {
+            const Icon = c.icon;
             return (
               <div
-                key={cap.id}
-                onClick={() => onSelectTab(cap.id)}
-                className="group bg-[#121520] hover:bg-[#151926] border border-zinc-800/80 hover:border-emerald-500/50 rounded-xl p-4 cursor-pointer transition-all duration-200 flex flex-col justify-between space-y-3 relative overflow-hidden"
+                key={c.id}
+                onClick={() => onSelectTab(c.id)}
+                className="group relative bg-[#121520] hover:bg-[#151928] border border-zinc-800/90 hover:border-emerald-500/50 rounded-xl p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-3 shadow-xs"
               >
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+                    <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
                       <Icon className="w-4 h-4" />
                     </div>
-                    <span className="text-[10px] font-mono text-zinc-400 px-2 py-0.5 rounded bg-black/40 border border-zinc-800">
-                      {cap.ratio}
+                    <span
+                      className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border ${c.badgeClass}`}
+                    >
+                      {c.tier}
                     </span>
                   </div>
 
                   <div>
-                    <h4 className="font-bold text-zinc-100 text-sm group-hover:text-emerald-300 transition">
-                      {cap.title}
+                    <h4 className="text-sm font-bold text-white tracking-tight group-hover:text-emerald-300 transition-colors">
+                      {c.title}
                     </h4>
-                    <span className="text-[10px] text-emerald-400 font-mono block mb-1">
-                      {cap.model}
-                    </span>
-                    <p className="text-zinc-400 text-xs line-clamp-2 leading-relaxed">
-                      {cap.description}
-                    </p>
+                    <p className="text-[11px] font-mono text-zinc-400 mt-0.5">{c.model}</p>
                   </div>
+
+                  <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">{c.description}</p>
                 </div>
 
-                <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {cap.tags.map((tag) => (
-                      <span key={tag} className="text-[9px] text-zinc-400 bg-zinc-850 px-1.5 py-0.5 rounded">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                    <span>Open</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
+                <div className="flex flex-wrap gap-1 pt-2 border-t border-zinc-800/80">
+                  {c.tags.map((t, idx) => (
+                    <span
+                      key={idx}
+                      className="text-[10px] px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-800"
+                    >
+                      {t}
+                    </span>
+                  ))}
                 </div>
               </div>
             );
@@ -303,124 +316,65 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         </div>
       </div>
 
-      {/* 3. Recent Generation Jobs & Timeline Insertion */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-zinc-200 tracking-tight">Recent Studio Generations</h3>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">
-              {recentJobs.length} Record{recentJobs.length !== 1 ? 's' : ''}
-            </span>
+      {/* 3. Recent AI Creations Queue */}
+      {recentJobs.length > 0 && (
+        <div className="bg-[#121520] border border-zinc-800 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+              Recent AI Generations & Timeline Bridges ({recentJobs.length})
+            </h3>
+            <span className="text-[11px] text-zinc-500">Directly sync to timeline or media library</span>
           </div>
-          <span className="text-[11px] text-zinc-500">Persistent across studio sessions</span>
-        </div>
 
-        {recentJobs.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center bg-[#10131d] space-y-2">
-            <Sparkles className="w-6 h-6 text-zinc-600 mx-auto" />
-            <span className="text-xs font-semibold text-zinc-400 block">No AI generations yet</span>
-            <p className="text-[11px] text-zinc-500 max-w-sm mx-auto">
-              Select any capability above or use the quick bar to generate video, audio, transcripts, and images.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {recentJobs.slice(0, 6).map((job) => {
-              const isDone = job.status === 'completed';
-              const isProcessing = job.status === 'processing' || job.status === 'queued';
-              const isFailed = job.status === 'failed';
-
-              return (
-                <div
-                  key={job.id}
-                  className="bg-[#121520] border border-zinc-800/80 rounded-xl p-3.5 space-y-2.5 flex flex-col justify-between"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300">
-                          {job.type.replace(/_/g, ' ')}
-                        </span>
-                        <span className={`text-[10px] font-medium ${isDone ? 'text-emerald-400' : isProcessing ? 'text-amber-400' : 'text-rose-400'}`}>
-                          ● {job.status}
-                        </span>
-                      </div>
-                      <span className="text-xs font-semibold text-zinc-200 block truncate">
-                        {job.output?.title || job.input?.prompt || job.input?.motionPrompt || job.stage}
-                      </span>
-                    </div>
-
-                    {isProcessing && (
-                      <button
-                        onClick={() => onCancelJob(job.id)}
-                        className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-rose-900/40 text-zinc-400 hover:text-rose-300 transition"
-                      >
-                        Cancel
-                      </button>
-                    )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {recentJobs.slice(0, 6).map((job) => (
+              <div
+                key={job.id}
+                className="bg-zinc-950/70 border border-zinc-800/90 rounded-lg p-3 space-y-2 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400">
+                    <span className="uppercase text-emerald-400 font-semibold">{job.type}</span>
+                    <span
+                      className={`capitalize px-1.5 py-0.2 rounded font-bold ${
+                        job.status === 'completed'
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : job.status === 'failed'
+                          ? 'bg-rose-500/20 text-rose-400'
+                          : 'bg-cyan-500/20 text-cyan-300'
+                      }`}
+                    >
+                      {job.status}
+                    </span>
                   </div>
 
-                  {/* Processing Progress or Finished preview */}
-                  {isProcessing && (
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[10px] text-zinc-400">
-                        <span>{job.stage}</span>
-                        <span>{job.progress}%</span>
-                      </div>
-                      <div className="h-1.5 bg-zinc-850 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-emerald-400 transition-all duration-300"
-                          style={{ width: `${job.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {isDone && (
-                    <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between gap-2">
-                      <span className="text-[10px] text-zinc-500 font-mono">
-                        {new Date(job.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => handleSaveToMediaPool(job)}
-                          className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] font-medium transition"
-                          title="Save asset to Media Pool"
-                        >
-                          Media Pool
-                        </button>
-                        <button
-                          onClick={() => handleAddToTimeline(job)}
-                          className="px-2.5 py-1 rounded bg-emerald-500 hover:bg-emerald-400 text-black text-[11px] font-bold transition flex items-center gap-1 shadow-xs"
-                          title="Insert clip onto active track at playhead"
-                        >
-                          <Plus className="w-3 h-3 stroke-[2.5]" />
-                          <span>Timeline</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {isFailed && (
-                    <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between">
-                      <span className="text-[10px] text-rose-400 truncate max-w-[70%]">
-                        {job.error || 'Execution failed'}
-                      </span>
-                      <button
-                        onClick={() => onRetryJob(job.id)}
-                        className="text-[10px] text-emerald-400 hover:underline font-semibold"
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  )}
+                  <p className="text-xs font-medium text-white line-clamp-1 mt-1">
+                    {job.output?.title || job.input?.prompt || job.stage}
+                  </p>
                 </div>
-              );
-            })}
+
+                {job.status === 'completed' && job.output && (
+                  <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-zinc-800/80">
+                    <button
+                      onClick={() => handleSaveToMediaPool(job)}
+                      className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-medium transition"
+                    >
+                      Save to Media
+                    </button>
+                    <button
+                      onClick={() => handleAddToTimeline(job)}
+                      className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold transition flex items-center gap-1 shadow-xs"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Add to Timeline</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -9,6 +9,8 @@ import { TemplateDatabase } from "./server/templateDatabase";
 import { AIServiceLayer } from "./server/aiServices";
 import { AiJobManager } from "./server/aiJobs";
 import { getAiStudioCapabilities } from "./server/aiCapabilities";
+import { HuggingFaceService } from "./server/hfService";
+import { SmartEditorService } from "./server/smartEditorService";
 
 
 dotenv.config();
@@ -186,6 +188,107 @@ app.get("/api/ai/health", (_req, res) => {
       ? "AI models and services connected."
       : "GEMINI_API_KEY is not configured in server environment. Please configure your key in Settings > Secrets.",
   });
+});
+
+// =========================================================================
+// HUGGING FACE & FREE / OPEN-SOURCE INFERENCE ENDPOINTS
+// =========================================================================
+app.get("/api/ai/hf/status", (_req, res) => {
+  const hf = HuggingFaceService.getInstance();
+  res.json(hf.checkStatus());
+});
+
+app.post("/api/ai/hf/text-to-image", async (req, res) => {
+  try {
+    const hf = HuggingFaceService.getInstance();
+    const result = await hf.generateImage(req.body);
+    res.json(result);
+  } catch (err: any) {
+    try {
+      const parsed = JSON.parse(err.message);
+      return res.status(parsed.status || 500).json(parsed);
+    } catch {
+      res.status(500).json({ error: err.message || "Hugging Face image generation failed" });
+    }
+  }
+});
+
+app.post("/api/ai/hf/speech-to-text", async (req, res) => {
+  try {
+    const hf = HuggingFaceService.getInstance();
+    const result = await hf.transcribeSpeech(req.body);
+    res.json(result);
+  } catch (err: any) {
+    try {
+      const parsed = JSON.parse(err.message);
+      return res.status(parsed.status || 500).json(parsed);
+    } catch {
+      res.status(500).json({ error: err.message || "Hugging Face speech transcription failed" });
+    }
+  }
+});
+
+app.post("/api/ai/hf/text-to-speech", async (req, res) => {
+  try {
+    const hf = HuggingFaceService.getInstance();
+    const result = await hf.generateSpeechTTS(req.body);
+    res.json(result);
+  } catch (err: any) {
+    try {
+      const parsed = JSON.parse(err.message);
+      return res.status(parsed.status || 500).json(parsed);
+    } catch {
+      res.status(500).json({ error: err.message || "Hugging Face TTS synthesis failed" });
+    }
+  }
+});
+
+app.post("/api/ai/hf/background-removal", async (req, res) => {
+  try {
+    const hf = HuggingFaceService.getInstance();
+    const result = await hf.removeBackground(req.body);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Hugging Face background removal failed" });
+  }
+});
+
+app.post("/api/ai/hf/translation", async (req, res) => {
+  try {
+    const hf = HuggingFaceService.getInstance();
+    const result = await hf.translate(req.body);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Hugging Face translation failed" });
+  }
+});
+
+app.post("/api/ai/hf/image-enhancement", async (req, res) => {
+  try {
+    const hf = HuggingFaceService.getInstance();
+    const result = await hf.enhanceImage(req.body);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Hugging Face image enhancement failed" });
+  }
+});
+
+// =========================================================================
+// SMART EDITOR STRUCTURED ACTIONS ENDPOINT
+// =========================================================================
+app.post("/api/ai/smart-editor/interpret", async (req, res) => {
+  const { command, context } = req.body;
+  if (!command || typeof command !== "string") {
+    return res.status(400).json({ error: "command string is required" });
+  }
+
+  try {
+    const smartEditor = SmartEditorService.getInstance();
+    const plan = await smartEditor.interpretCommand(command, context);
+    res.json(plan);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Smart Editor command interpretation failed" });
+  }
 });
 
 // Dedicated Image Editing Endpoint

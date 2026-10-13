@@ -16,6 +16,9 @@ import {
   ArrowLeft,
   Film,
   Layers,
+  Languages,
+  Wand2,
+  Subtitles,
 } from 'lucide-react';
 import { useEditor } from '../../context/EditorContext';
 
@@ -23,10 +26,14 @@ export type AiStudioTab =
   | 'overview'
   | 'text_to_video'
   | 'image_to_video'
-  | 'transcription'
-  | 'music'
+  | 'images'
   | 'voice'
-  | 'images';
+  | 'transcription'
+  | 'captions'
+  | 'translation'
+  | 'smart_editor'
+  | 'music'
+  | 'models';
 
 interface AiMediaStudioHeaderProps {
   activeTab: AiStudioTab;
@@ -45,10 +52,14 @@ export const AiMediaStudioHeader: React.FC<AiMediaStudioHeaderProps> = ({
     { id: 'overview', label: 'Overview', icon: LayoutGrid },
     { id: 'text_to_video', label: 'Text to Video', icon: Video },
     { id: 'image_to_video', label: 'Image to Video', icon: Clapperboard },
-    { id: 'transcription', label: 'Transcription', icon: FileAudio },
+    { id: 'images', label: 'Images & BG', icon: ImageIcon },
+    { id: 'voice', label: 'Voice & TTS', icon: Mic },
+    { id: 'transcription', label: 'Speech-to-Text', icon: FileAudio },
+    { id: 'captions', label: 'Auto Captions', icon: Subtitles },
+    { id: 'translation', label: 'Translation', icon: Languages },
+    { id: 'smart_editor', label: 'Smart Editor', icon: Wand2 },
     { id: 'music', label: 'Music', icon: Music },
-    { id: 'voice', label: 'Voice', icon: Mic },
-    { id: 'images', label: 'Images', icon: ImageIcon },
+    { id: 'models', label: 'Model Registry', icon: Layers },
   ];
 
   return (
@@ -71,16 +82,16 @@ export const AiMediaStudioHeader: React.FC<AiMediaStudioHeaderProps> = ({
             <Sparkles className="w-3.5 h-3.5" />
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xs font-bold tracking-tight text-white">AI Media Studio</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 font-semibold hidden sm:inline">
-              PRO SUITE
+            <span className="text-xs font-bold tracking-tight text-white">AI Studio</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-semibold hidden sm:inline">
+              ZERO COST / HF
             </span>
           </div>
         </div>
       </div>
 
-      {/* 2. Center: 7 Main Tabs */}
-      <nav className="flex items-center gap-1 bg-[#12151f] p-1 rounded-lg border border-zinc-800/80 overflow-x-auto">
+      {/* 2. Center: Scrollable Main Tabs */}
+      <nav className="flex items-center gap-1 bg-[#12151f] p-1 rounded-lg border border-zinc-800/80 overflow-x-auto max-w-3xl">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -109,7 +120,7 @@ export const AiMediaStudioHeader: React.FC<AiMediaStudioHeaderProps> = ({
             <span>{activeJobCount} Active Job{activeJobCount > 1 ? 's' : ''}</span>
           </div>
         ) : (
-          <span className="text-[11px] text-zinc-500 hidden md:inline">Ready to generate</span>
+          <span className="text-[11px] text-zinc-500 hidden md:inline">Ready</span>
         )}
 
         <button

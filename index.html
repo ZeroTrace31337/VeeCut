@@ -1,6 +1,69 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      // Guard against iframe/sandboxed environments where window.fetch has only a getter
+      (function() {
+        try {
+          var origDefine = Object.defineProperty;
+          Object.defineProperty = function(target, prop, desc) {
+            if (prop === 'fetch' && desc) {
+              if (desc.get && !desc.set) {
+                var origGet = desc.get;
+                var overrideVal;
+                desc.get = function() {
+                  return overrideVal !== undefined ? overrideVal : origGet.call(this);
+                };
+                desc.set = function(val) {
+                  overrideVal = val;
+                };
+                desc.configurable = true;
+              }
+            }
+            return origDefine.call(this, target, prop, desc);
+          };
+        } catch (e) {}
+
+        function ensureFetchSetter(obj) {
+          try {
+            if (!obj) return false;
+            var desc = Object.getOwnPropertyDescriptor(obj, 'fetch');
+            if (desc && desc.get && !desc.set) {
+              var currentFetch = obj.fetch;
+              Object.defineProperty(obj, 'fetch', {
+                get: function() {
+                  return currentFetch;
+                },
+                set: function(val) {
+                  currentFetch = val;
+                },
+                configurable: true,
+                enumerable: desc.enumerable !== false
+              });
+              return true;
+            }
+          } catch (e) {}
+          return false;
+        }
+
+        if (typeof window !== 'undefined') {
+          ensureFetchSetter(window);
+          if (typeof Window !== 'undefined' && Window.prototype) {
+            ensureFetchSetter(Window.prototype);
+          }
+        }
+
+        if (typeof window !== 'undefined' && window.addEventListener) {
+          window.addEventListener('error', function(event) {
+            if (event && event.message && event.message.indexOf('Cannot set property fetch of') !== -1) {
+              if (event.preventDefault) event.preventDefault();
+              if (event.stopPropagation) event.stopPropagation();
+              return true;
+            }
+          }, true);
+        }
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />

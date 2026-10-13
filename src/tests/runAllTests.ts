@@ -12,6 +12,7 @@ import { runProjectSerializationUnitTests } from './unit/projectSerialization.te
 import { runE2EStressProjectIntegrationTests } from './integration/e2eStressProject.test';
 import { runFinalProductionReadinessAuditTests } from './integration/finalProductionReadinessAudit.test';
 import { runAiMediaStudioUnitTests } from './unit/aiMediaStudio.test';
+import { runAiProviderArchitectureTests } from './unit/aiProviderArchitecture.test';
 
 async function main() {
   console.log('====================================================');
@@ -30,6 +31,7 @@ async function main() {
     { name: '7. Section 116 End-to-End Stress Test Project', runner: runE2EStressProjectIntegrationTests },
     { name: '8. Final Production Readiness, Video Invariants & Security Audit', runner: runFinalProductionReadinessAuditTests },
     { name: '9. AI Media Studio & Job Lifecycle Architecture', runner: runAiMediaStudioUnitTests },
+    { name: '10. VeeCut AI Provider Architecture (HF & Local Zero-Cost Engine)', runner: runAiProviderArchitectureTests },
   ];
 
   let totalTests = 0;
